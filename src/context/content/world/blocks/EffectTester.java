@@ -65,8 +65,8 @@ public class EffectTester extends CodableTester {
             }).size(40f);
             table.button(Icon.settings, Styles.cleari, () -> {
                 TextField duration = new TextField(effect.lifetime+"");
-                TextField clipsize = new TextField(effect.clip+"");
-                TextField idfield = new TextField(effect.id+"");
+                TextField clipSize = new TextField(effect.clip+"");
+                TextField idField = new TextField(effect.id+"");
 
                 TextField.TextFieldValidator listener = (txt) -> {
                     try{
@@ -78,28 +78,28 @@ public class EffectTester extends CodableTester {
                 };
 
                 duration.setValidator(listener);
-                clipsize.setValidator(listener);
-                idfield.setColor(Color.gray);
-                idfield.setDisabled(true);
+                clipSize.setValidator(listener);
+                idField.setColor(Color.gray);
+                idField.setDisabled(true);
 
                 duration.setFilter((textField, c) -> textField.getText().length() < 10 && (c >= '0' && c <= '9' || c == '.'));
-                clipsize.setFilter((textField, c) -> textField.getText().length() < 10 && (c >= '0' && c <= '9' || c == '.'));
-                idfield.setFilter((textField, c) -> false);
+                clipSize.setFilter((textField, c) -> textField.getText().length() < 10 && (c >= '0' && c <= '9' || c == '.'));
+                idField.setFilter((textField, c) -> false);
 
                 BaseDialog d = new BaseDialog("@editmessage");
                 d.setFillParent(false);
                 d.cont.label(()->"@context.block.effect-tester.id");
-                d.cont.add(idfield);
+                d.cont.add(idField);
                 d.cont.row();
                 d.cont.label(()->"@context.block.effect-tester.lifetime");
                 d.cont.add(duration);
                 d.cont.row();
                 d.cont.label(()->"@context.block.effect-tester.clipsize");
-                d.cont.add(clipsize);
+                d.cont.add(clipSize);
                 d.buttons.button("@ok", () -> {
                     try {
                         float lt = Float.parseFloat(duration.getText());
-                        float cs = Float.parseFloat(clipsize.getText());
+                        float cs = Float.parseFloat(clipSize.getText());
                         effect.lifetime = lt;
                         effect.clip = cs;
                     } catch (Throwable e) {
@@ -121,16 +121,6 @@ public class EffectTester extends CodableTester {
         }
 
         @Override
-        public void configure(Object value) {
-            if (value instanceof String) {
-                setCode((String) value);
-            } else {
-                Log.err("Reporte esse BUG");
-            }
-            super.configure(value);
-        }
-
-        @Override
         public String config() {
             return code;
         }
@@ -138,11 +128,11 @@ public class EffectTester extends CodableTester {
         @Override
         public void drawSelect() {
             if (renderer.pixelator.enabled()) return;
-            if (errorMessage.length() == 0) return;
+            if (errorMessage.isEmpty()) return;
 
             Font font = Fonts.outline;
             GlyphLayout l = Pools.obtain(GlyphLayout.class, GlyphLayout::new);
-            boolean ints = font.usesIntegerPositions();
+            boolean usesIntegerPositions = font.usesIntegerPositions();
             font.getData().setScale(1 / 4f / Scl.scl(1f));
             font.setUseIntegerPositions(false);
 
@@ -154,7 +144,7 @@ public class EffectTester extends CodableTester {
             Draw.color();
             font.setColor(Color.scarlet);
             font.draw(errorMessage, x - l.width / 2f, y - tilesize / 2f - offset, 90f, Align.left, true);
-            font.setUseIntegerPositions(ints);
+            font.setUseIntegerPositions(usesIntegerPositions);
 
             font.getData().setScale(1f);
 
@@ -162,7 +152,7 @@ public class EffectTester extends CodableTester {
         }
 
         public void updateMode() {
-            if (code.length() == 0) mode = TestersModes.EMPTY;
+            if (code.isEmpty()) mode = TestersModes.EMPTY;
             else if (!errorMessage.isEmpty()) {
                 if (compileError) mode = TestersModes.COMPILER_ERROR;
                 else mode = TestersModes.RUNTIME_ERROR;

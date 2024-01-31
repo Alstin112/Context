@@ -8,7 +8,6 @@ import arc.graphics.g2d.GlyphLayout;
 import arc.scene.ui.layout.Scl;
 import arc.scene.ui.layout.Table;
 import arc.util.Align;
-import arc.util.Log;
 import arc.util.io.Reads;
 import arc.util.io.Writes;
 import arc.util.pooling.Pools;
@@ -19,12 +18,12 @@ import mindustry.mod.Scripts;
 import mindustry.ui.Fonts;
 import mindustry.ui.Menus;
 import mindustry.ui.Styles;
-import mindustry.world.Block;
 import rhino.Script;
 
 import static mindustry.Vars.renderer;
 import static mindustry.Vars.tilesize;
 
+@SuppressWarnings("unused")
 public class DialogTester extends CodableTester {
     public DialogTester(String name) {
         super(name);
@@ -39,9 +38,7 @@ public class DialogTester extends CodableTester {
 
         @Override
         public void buildConfiguration(Table table) {
-            table.button(Icon.pencil, Styles.cleari, () -> {
-                Menus.infoMessage("Not implemented yet :P");
-            }).size(40f);
+            table.button(Icon.pencil, Styles.cleari, () -> Menus.infoMessage("Not implemented yet :P")).size(40f);
 
             table.button(Icon.play, Styles.cleari, () -> {
                 try{
@@ -50,16 +47,6 @@ public class DialogTester extends CodableTester {
                     errorMessage = e.getMessage();
                 }
             }).size(40f);
-        }
-
-        @Override
-        public void configure(Object value) {
-            if (value instanceof String) {
-                updateRunFn((String) value);
-            } else {
-                Log.err("Reporte esse BUG");
-            }
-            super.configure(value);
         }
 
         @Override

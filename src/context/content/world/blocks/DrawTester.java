@@ -62,9 +62,7 @@ public class DrawTester extends CodableTester {
                     codeIde.close();
                     this.configure(tab.code);
                 });
-                tab.onSynchronize = (file) -> {
-                    this.synchronizedFile = file;
-                };
+                tab.onSynchronize = (file) -> this.synchronizedFile = file;
                 ide.hideTabs(true);
                 ide.show();
                 deselect();
@@ -93,7 +91,7 @@ public class DrawTester extends CodableTester {
 
             Font font = Fonts.outline;
             GlyphLayout l = Pools.obtain(GlyphLayout.class, GlyphLayout::new);
-            boolean ints = font.usesIntegerPositions();
+            boolean usesIntegerPositions = font.usesIntegerPositions();
             font.getData().setScale(1 / 4f / Scl.scl(1f));
             font.setUseIntegerPositions(false);
 
@@ -105,7 +103,7 @@ public class DrawTester extends CodableTester {
             Draw.color();
             font.setColor(Color.scarlet);
             font.draw(errorMessage, x - l.width / 2f, y - tilesize / 2f - offset, 90f, Align.left, true);
-            font.setUseIntegerPositions(ints);
+            font.setUseIntegerPositions(usesIntegerPositions);
 
             font.getData().setScale(1f);
 
@@ -181,13 +179,4 @@ public class DrawTester extends CodableTester {
         }
     }
 
-    public static class DrawTesterConfig {
-        public String code;
-        public boolean active;
-
-        public DrawTesterConfig(String code, boolean active) {
-            this.code = code;
-            this.active = active;
-        }
-    }
 }

@@ -7,7 +7,6 @@ import arc.scene.ui.Button;
 import arc.scene.ui.ImageButton;
 import arc.scene.ui.layout.Table;
 import arc.util.Align;
-import arc.util.Log;
 import mindustry.gen.Icon;
 import mindustry.gen.Iconc;
 import mindustry.ui.Fonts;
@@ -46,6 +45,7 @@ public class IconDictionary extends BaseContextBlock {
         iconsMind = sbMind.toString();
     }
 
+    @SuppressWarnings("unused")
     public class IconTesterBuild extends BaseContextBuild {
 
         @Override
@@ -62,9 +62,7 @@ public class IconDictionary extends BaseContextBlock {
                 Table optionsTab = new Table();
                 for (int i = 0; i < iconsChar.length(); i++) {
                     char c = iconsChar.charAt(i);
-                    optionsTab.button(Fonts.getGlyph(Fonts.def, iconsChar.charAt(i)), Styles.cleari, () -> {
-                        SelectedIcon(table, c);
-                    }).size(40f);
+                    optionsTab.button(Fonts.getGlyph(Fonts.def, iconsChar.charAt(i)), Styles.cleari, () -> SelectedIcon(table, c)).size(40f);
                     if (i % 4 == 3) optionsTab.row();
                 }
                 for (int i = 0; i < 3 - (3 + iconsChar.length()) % 4; i++) {
@@ -82,9 +80,7 @@ public class IconDictionary extends BaseContextBlock {
                 Table optionsTab = new Table();
                 for (int i = 0; i < iconsMind.length(); i++) {
                     char c = iconsMind.charAt(i);
-                    optionsTab.button(Fonts.getGlyph(Fonts.def, iconsMind.charAt(i)), Styles.cleari, () -> {
-                        SelectedIcon(table, c);
-                    }).size(40f);
+                    optionsTab.button(Fonts.getGlyph(Fonts.def, iconsMind.charAt(i)), Styles.cleari, () -> SelectedIcon(table, c)).size(40f);
                     if (i % 4 == 3) optionsTab.row();
                 }
                 for (int i = 0; i < 3 - (3 + iconsMind.length()) % 4; i++) {
@@ -102,9 +98,7 @@ public class IconDictionary extends BaseContextBlock {
                 Table optionsTab = new Table();
                 for (int i = 0; i < iconsImg.length(); i++) {
                     char c = iconsImg.charAt(i);
-                    optionsTab.button(Fonts.getGlyph(Fonts.def, iconsImg.charAt(i)), Styles.cleari, () -> {
-                        SelectedIcon(table, c);
-                    }).size(40f);
+                    optionsTab.button(Fonts.getGlyph(Fonts.def, iconsImg.charAt(i)), Styles.cleari, () -> SelectedIcon(table, c)).size(40f);
                     if (i % 4 == 3) optionsTab.row();
                 }
                 for (int i = 0; i < 3 - (3 + iconsImg.length()) % 4; i++) {
@@ -123,33 +117,6 @@ public class IconDictionary extends BaseContextBlock {
             catButtons.add(iButton).size(60f, 40f);
             table.add(catButtons);
         }
-        /*
-        public static ScrollPane CreateOptionsTab(ButtonType type) {
-            CharSequence charSeq;
-            switch (type) {
-                case CHAR -> charSeq = iconsChar;
-                case IMAGE -> charSeq = iconsImg;
-                case MINDUSTRY -> charSeq = iconsMind;
-                default -> throw new IllegalStateException("Unexpected value: " + type);
-            }
-            Table optionsTab = new Table();
-            for (int i = 0; i < charSeq.length(); i++) {
-                int finalI = charSeq.charAt(i);
-                optionsTab.button(Fonts.getGlyph(Fonts.def, charSeq.charAt(i)), Styles.cleari, () -> {
-                    SelectedIcon(table, finalI);
-                }).size(40f);
-                if(i%4 == 3) optionsTab.row();
-            }
-            for (int i = 0; i < 3-(3+charSeq.length())%4;i++) {
-                optionsTab.add(new Table(Styles.black6)).size(40f);
-            }
-            table.pane(optionsTab).size(180f,160f);
-            table.row();
-            table.add(catButtons);
-            cButton.setDisabled(true);
-            mButton.setDisabled(false);
-            iButton.setDisabled(false);
-        }*/
 
         public void SelectedIcon(Table t, char c) {
            // table.setBackground(Styles.black6);

@@ -7,11 +7,8 @@ import context.content.world.blocks.JsTester;
 import mindustry.Vars;
 import mindustry.core.ContentLoader;
 import mindustry.mod.Mod;
-import mindustry.mod.ModClassLoader;
-import mindustry.mod.Mods;
 
-import static mindustry.Vars.platform;
-
+@SuppressWarnings("unused")
 public class Context extends Mod{
 
     public static DrawTester drawTester;

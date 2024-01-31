@@ -25,10 +25,6 @@ public enum TestersModes {
         this.frequency = frequency;
     }
 
-    public Color getColor() {
-        return new Color(color);
-    }
-
     public Color getColor(float time) {
         if(frequency == 0f) return new Color(color);
         return new Color(color).lerp(new Color(colorRange), Mathf.absin(time, frequency, 1f));

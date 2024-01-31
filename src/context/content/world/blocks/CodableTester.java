@@ -7,7 +7,6 @@ import arc.util.Time;
 import context.content.TestersModes;
 
 public abstract class CodableTester extends BaseContextBlock {
-    public int maxTextLength = 64000;
 
     public TextureRegion topRegion;
     public CodableTester(String name) {

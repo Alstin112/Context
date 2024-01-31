@@ -10,7 +10,6 @@ import arc.scene.ui.TextButton;
 import arc.scene.ui.layout.Scl;
 import arc.scene.ui.layout.Table;
 import arc.util.Align;
-import arc.util.Log;
 import arc.util.io.Reads;
 import arc.util.io.Writes;
 import arc.util.pooling.Pools;
@@ -23,9 +22,6 @@ import mindustry.mod.Scripts;
 import mindustry.ui.Fonts;
 import mindustry.ui.Styles;
 import rhino.Script;
-
-import java.io.BufferedWriter;
-import java.io.Writer;
 
 import static mindustry.Vars.renderer;
 import static mindustry.Vars.tilesize;
@@ -63,7 +59,7 @@ public class JsTester extends CodableTester {
                     if (ide.trySave()) {
                         ide.close();
                         this.run();
-                    };
+                    }
                 });
                 ide.addButton(new TextButton("@context.only-run")).clicked(() -> {
                     if (ide.trySave()) this.run();
@@ -71,12 +67,8 @@ public class JsTester extends CodableTester {
 
                 if (synchronizedFile != null) tab.setSync(synchronizedFile, true);
 
-                ide.setOnSave(codeIde -> {
-                    this.configure(tab.code);
-                });
-                tab.onSynchronize = (file) -> {
-                    this.synchronizedFile = file;
-                };
+                ide.setOnSave(codeIde -> this.configure(tab.code));
+                tab.onSynchronize = (file) -> this.synchronizedFile = file;
 
                 ide.show();
                 deselect();
@@ -91,16 +83,6 @@ public class JsTester extends CodableTester {
             } catch (Throwable e) {
                 errorMessage = e.getMessage();
             }
-        }
-
-        @Override
-        public void configure(Object value) {
-            if (value instanceof String) {
-                setCode((String) value);
-            } else {
-                Log.err("Reporte esse BUG");
-            }
-            super.configure(value);
         }
 
         @Override
