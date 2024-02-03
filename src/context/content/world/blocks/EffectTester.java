@@ -58,7 +58,7 @@ public class EffectTester extends CodableTester {
                     codeIde.close();
                     this.configure(tab.code);
                 });
-                tab.onSynchronize = (file) -> this.synchronizedFile = file;
+                tab.onSynchronize = file -> this.synchronizedFile = file;
                 ide.hideTabs(true);
                 ide.show();
                 deselect();
@@ -68,11 +68,11 @@ public class EffectTester extends CodableTester {
                 TextField clipSize = new TextField(effect.clip+"");
                 TextField idField = new TextField(effect.id+"");
 
-                TextField.TextFieldValidator listener = (txt) -> {
+                TextField.TextFieldValidator listener = txt -> {
                     try{
                         Float.parseFloat(txt);
                         return true;
-                    } catch (Throwable ignored) {
+                    } catch (NumberFormatException ignored) {
                         return false;
                     }
                 };
@@ -91,10 +91,10 @@ public class EffectTester extends CodableTester {
                 d.cont.label(()->"@context.block.effect-tester.id");
                 d.cont.add(idField);
                 d.cont.row();
-                d.cont.label(()->"@context.block.effect-tester.lifetime");
+                d.cont.label(()->"@block.context-effect-tester.lifetime");
                 d.cont.add(duration);
                 d.cont.row();
-                d.cont.label(()->"@context.block.effect-tester.clipsize");
+                d.cont.label(()->"@block.context-effect-tester.clipsize");
                 d.cont.add(clipSize);
                 d.buttons.button("@ok", () -> {
                     try {
@@ -102,7 +102,7 @@ public class EffectTester extends CodableTester {
                         float cs = Float.parseFloat(clipSize.getText());
                         effect.lifetime = lt;
                         effect.clip = cs;
-                    } catch (Throwable e) {
+                    } catch (NumberFormatException e) {
                         Log.err(e);
                     }
                     d.hide();
@@ -113,7 +113,7 @@ public class EffectTester extends CodableTester {
             table.button(Icon.play, Styles.cleari, () -> {
                 try {
                     effect.at(this.x, this.y);
-                } catch (Throwable e) {
+                } catch (NumberFormatException e) {
                     errorMessage = e.getMessage();
                 }
 
@@ -151,6 +151,7 @@ public class EffectTester extends CodableTester {
             Pools.free(l);
         }
 
+        @Override
         public void updateMode() {
             if (code.isEmpty()) mode = TestersModes.EMPTY;
             else if (!errorMessage.isEmpty()) {
@@ -164,12 +165,12 @@ public class EffectTester extends CodableTester {
 
             Scripts scripts = Vars.mods.getScripts();
             try {
-                String code = "Effect.get(" + effect.id + ").renderer=function(e){try{" + value + "\nVars.world.build(" + tile.x + "," + tile.y + ").errorMessage=\"\"}catch(e){Vars.world.build(" + tile.x + "," + tile.y + ").errorMessage=e}}";
-                scripts.context.evaluateString(scripts.scope, code, "EffectTester", 1);
+                String codeStr = "Effect.get(" + effect.id + ").renderer=function(e){try{" + value + "\nVars.world.build(" + tile.x + "," + tile.y + ").errorMessage=\"\"}catch(e){Vars.world.build(" + tile.x + "," + tile.y + ").errorMessage=e}}";
+                scripts.context.evaluateString(scripts.scope, codeStr, "EffectTester", 1);
 
                 errorMessage = "";
                 compileError = false;
-            } catch (Throwable e) {
+            } catch (RuntimeException e) {
                 errorMessage = e.getMessage();
                 compileError = true;
             }

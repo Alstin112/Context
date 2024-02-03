@@ -6,171 +6,295 @@ import arc.scene.ui.CheckBox;
 import arc.scene.ui.Label;
 import arc.scene.ui.TextField;
 import arc.scene.ui.layout.Table;
-import arc.util.Log;
 import mindustry.Vars;
 import mindustry.gen.Tex;
 import mindustry.mod.Scripts;
 import mindustry.ui.Styles;
 import rhino.NativeArray;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.regex.Pattern;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.*;
 
 public class SearchFunction {
 
-    public Table cont = new Table();
-    private String classStr = "";
-    private final TextField searchField = new TextField();
-    private final Table resultsShow = new Table();
-    private final CheckBox checkMethods = new CheckBox("[red]\uE282[] " + Core.bundle.get("context.search-function.methods"));
-    private final CheckBox checkFields = new CheckBox("[gold]\uE286[] " + Core.bundle.get("context.search-function.fields"));
+    public static final Label LABEL_EMPTY = new Label("@context.search-function.empty-field");
+    public static final Table cont = new Table();
+    public static final Table infoContent = new Table();
+    private static final TextField searchField = new TextField("Vars");
+    private static final Table resultsShow = new Table();
+    private static final CheckBox checkOnlyAvailable = new CheckBox("[green]\uE88E[] " + Core.bundle.get("context.search-function.only-available"));
+    private static final CheckBox checkMethods = new CheckBox("[red]\uE282[] " + Core.bundle.get("context.search-function.methods"));
+    private static final CheckBox checkFields = new CheckBox("[gold]\uE286[] " + Core.bundle.get("context.search-function.fields"));
 
 
     public SearchFunction() {
-        cont.label(() -> Core.bundle.format("context.search-function.class", classStr.isEmpty() ? Core.bundle.get("context.not-found") : classStr)).colspan(2);
-        cont.row();
-
+        cont.clearChildren();
+        resultsShow.defaults().left();
+        // Search Area
         Table tableSearch = new Table();
         tableSearch.label(() -> "@context.search");
+        tableSearch.marginBottom(10);
         tableSearch.add(searchField).growX();
         searchField.changed(this::search);
         searchField.setValidator(s -> s.matches("^[\\w.]*$"));
         cont.add(tableSearch).growX();
         cont.row();
 
+        // Main Screen with the results | options
         Table screen = cont.table().grow().get();
-        Table bigResult = screen.table().grow().colspan(3).get();
+
+        // Results on left
+        Table bigResult = screen.table().grow().colspan(4).get();
         bigResult.setBackground(Tex.button);
         bigResult.pane(resultsShow).grow();
         resultsShow.top();
 
-        Table BigFilters = screen.table().grow().get();
-        Table filters = BigFilters.table().get();
+        // All options
+        Table optionsSide = screen.table().grow().get();
+
+        // Info
+        Table info = optionsSide.table().grow().get().top();
+        info.setBackground(Tex.button);
+        info.label(() -> "@context.search-function.info");
+        info.row();
+        info.add(infoContent).grow();
+
+        optionsSide.row();
+
+        // Filters
+        Table filters = optionsSide.table().grow().get();
+        filters.label(() -> "@context.search-function.filters");
+        filters.row();
         filters.setBackground(Tex.button);
+        filters.add(checkOnlyAvailable).left().padTop(5).get().changed(this::search);
+        checkMethods.setChecked(true);
+        filters.row();
         filters.add(checkMethods).left().padTop(5).get().changed(this::search);
         checkMethods.setChecked(true);
         filters.row();
         filters.add(checkFields).left().padTop(5).get().changed(this::search);
         checkFields.setChecked(true);
+
+        search();
     }
 
     private void search() {
-        Scripts s = Vars.mods.getScripts();
         String toSearch = searchField.getText();
         String path = null;
         if (toSearch.contains(".")) path = toSearch.substring(0, toSearch.lastIndexOf("."));
 
         resultsShow.clear();
-        boolean success = displaySearch(s, toSearch, "");
+        boolean success = displaySearch(toSearch, "");
         if (!success && path != null) {
-            int i = toSearch.indexOf(".")+1;
-            if(i < toSearch.length()) displaySearch(s, path, toSearch.substring(i));
-            else displaySearch(s, path, "");
+            int i = toSearch.lastIndexOf(".") + 1;
+            if (i < toSearch.length()) displaySearch(path, toSearch.substring(i));
+            else displaySearch(path, "");
         }
-
     }
 
-    private boolean displaySearch(Scripts s, String toSearch, String starts) {
-        String str;
-        NativeArray keys;
+    private boolean displaySearch(String toSearch, String starts) {
+        infoContent.clearChildren();
+        Object obj;
+        ArrayList<String> availableKeys;
         try {
-            Object obj = s.context.evaluateString(s.scope,
-                    "[typeof @,String(@), Object.keys(@).sort().reduce((a,b)=>[].concat(a,[b,typeof @[b]]),[])]".replaceAll("@", toSearch),
-                    "Testing",
-                    1
-            );
-
-            NativeArray list = (NativeArray) obj;
-            String type = (String) list.get(0);
-            str = (String) list.get(1);
-            // If it's not an object or function, or it's a class, return
-            if (!(type).equals("object") && !(type).equals("function") || str.startsWith("[object ")) return true;
-            keys = (NativeArray) list.get(2);
-
-        } catch (Throwable e) {
+            obj = execute(toSearch);
+            NativeArray rawKeys = (NativeArray) execute("Object.keys(" + toSearch + ")");
+            availableKeys = new ArrayList<>();
+            for (Object key : rawKeys) {
+                availableKeys.add((String) key);
+            }
+        } catch (RuntimeException e) {
+            infoContent.label(() -> Core.bundle.get("context.not-found"));
             return false;
         }
 
-        ArrayList<String> strKeys = filterAndToString(keys, starts);
+        if (obj instanceof rhino.NativeJavaClass nObj) {
+            Class<?> cl;
+            try {
+                cl = (Class<?>) nObj.unwrap();
+            } catch (ClassCastException e) {
+                return false;
+            }
 
-        if (isMethod(str)) {
-            // Just cut the function name() {\* from the string
-            String overLoadsTxt = str.substring(str.indexOf("/*") + 2, str.length() - 4);
-            ArrayList<String> overLoads = Arrays.stream(overLoadsTxt.split("\n")).filter(s1 -> !s1.trim().isEmpty()).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
-            for (String overload : overLoads) {
-                resultsShow.add(new Label(overload)).growX();
+            // ! To change
+            infoContent.label(() -> "Type: Class");
+            infoContent.row();
+            infoContent.label(() -> "Name: " + cl.getName());
+            createButtonsFromClass(toSearch, starts, cl, availableKeys);
+            return true;
+        }
+
+        if (obj instanceof rhino.NativeJavaObject nObj) {
+            Class<?> cl = nObj.unwrap().getClass();
+
+            // ! To change
+            infoContent.label(() -> "Type: Instance");
+            infoContent.row();
+            infoContent.label(() -> "Class: " + cl.getName());
+            createButtonsFromClass(toSearch, starts, cl, availableKeys);
+            return true;
+        }
+
+        if (obj instanceof rhino.NativeJavaMethod nObj) {
+
+            // ! To change
+            infoContent.label(() -> "Type: Method");
+            infoContent.row();
+            infoContent.label(() -> "Class: <report this error>");
+            String[] values = nObj.toString().split("\n");
+            for (String value : values) {
+                resultsShow.add(new Label(value.trim())).growX();
                 resultsShow.row();
             }
-            if (overLoads.isEmpty()) resultsShow.add(new Label("@context.search-function.empty-field"));
-            return true;
-        }
-        if (isInstance(str)) {
-            classStr = str.substring(11, str.length() - 1);
-            for (int i = 0; i < strKeys.size(); i += 2) {
-                addButton(strKeys.get(i), "function".equals(strKeys.get(i + 1)));
-            }
-            if (strKeys.isEmpty()) resultsShow.add(new Label("@context.search-function.empty-field"));
-            return true;
-        }
-        if (isClass(str)) {
-            classStr = str.substring(0, str.indexOf("@"));
-            for (int i = 0; i < strKeys.size(); i += 2) {
-                addButton(strKeys.get(i), "function".equals(strKeys.get(i + 1)));
-            }
-            if (strKeys.isEmpty()) resultsShow.add(new Label("@context.search-function.empty-field"));
             return true;
         }
 
-        return false;
-    }
-
-    private static ArrayList<String> filterAndToString(NativeArray keys, String starts) {
-        ArrayList<String> strKeys = new ArrayList<>();
-        if (starts.isEmpty()) {
-            for (int i = 0; i < keys.getLength(); i += 1) {
-                strKeys.add((String) keys.get(i));
+        if(obj instanceof rhino.NativeObject) {
+            // ! To change
+            infoContent.label(() -> "Type: Object");
+            for(String key : availableKeys) {
+                ButtonInfo btn = new ButtonInfo(key);
+                btn.setPath(toSearch + "." + key);
+                btn.addTo(resultsShow, () -> {
+                    searchField.setText(btn.getPath());
+                    search();
+                });
             }
-        } else {
-            for (int i = 0; i < keys.getLength(); i += 2) {
-                String key = (String) keys.get(i);
-                if (!key.startsWith(starts)) continue;
-                strKeys.add(key);
-                strKeys.add((String) keys.get(i + 1));
+            if(availableKeys.isEmpty()) resultsShow.add(LABEL_EMPTY);
+            return true;
+        }
+
+        if(obj instanceof java.lang.String || obj instanceof java.lang.Number || obj instanceof java.lang.Boolean) {
+            // ! To change
+            infoContent.label(() -> "Type: " + obj.getClass().getSimpleName());
+            infoContent.row();
+            if(obj instanceof java.lang.String str) {
+                str = str.replaceAll("[\n\t]"," ");
+                if(str.length() > 20) str = str.substring(0,17)+"...";
+                infoContent.add(new Label("Value: " + str));
+            } else {
+            infoContent.label(() -> "Value: " + obj);
             }
+            return true;
         }
-        return strKeys;
+
+        // ! To change
+        infoContent.label(() -> "Type: Unknown");
+        infoContent.row();
+        infoContent.label(() -> "JavaClass: "+obj.getClass().getName());
+        return true;
     }
 
-    private static boolean isClass(String str) {
-        return Pattern.matches("^([.\\w]+)@\\w+?$", str);
+    private static Object execute(String code) {
+        Scripts s = Vars.mods.getScripts();
+        return s.context.evaluateString(s.scope, code, "SearchTerms", 1);
     }
+    private void createButtonsFromClass(String toSearch, String starts, Class<?> cl, List<String> availableKeys) {
+        Set<String> knownStrings = new HashSet<>();
+        ArrayList<ButtonInfo> buttonsToAdd = new ArrayList<>();
+        Method[] allMethods = cl.getMethods();
+        for (Method method : allMethods) {
+            knownStrings.add(method.getName());
+            boolean isAvailable = availableKeys.contains(method.getName());
+            if (checkOnlyAvailable.isChecked()
+                    && !availableKeys.contains(method.getName())
+                    || !method.getName().startsWith(starts)
+                    || !checkMethods.isChecked()
+                    || buttonsToAdd.stream().anyMatch(btn -> btn.text.equals(method.getName()))
+            ) continue;
 
-    private static boolean isInstance(String str) {
-        return str.startsWith("[JavaClass ");
-    }
+            ButtonInfo btn = new ButtonInfo(method.getName());
+            btn.setType(ButtonInfoType.METHOD);
+            if (isAvailable) btn.setPath(toSearch + "." + method.getName());
 
-    private boolean isMethod(String str) {
-        return str.startsWith("function ") && str.endsWith("\n*/}\n") && str.contains("/*");
-    }
-
-    private void addButton(String key, boolean isFunction) {
-        Button btn = (Button) new Button(Styles.cleart).left();
-        String txt = "";
-        if (isFunction) {
-            if (!checkMethods.isChecked()) return;
-            txt = "[red]\uE282[] " + key;
-        } else {
-            if (!checkFields.isChecked()) return;
-            txt = "[gold]\uE286[] " + key;
+            buttonsToAdd.add(btn);
         }
-        btn.add(new Label(txt));
-        btn.clicked(() -> {
-            searchField.setText(searchField.getText() + "." + key);
-            search();
-        });
-        resultsShow.add(btn).growX();
-        resultsShow.row();
+        Field[] allFields = cl.getFields();
+        for (Field field : allFields) {
+            knownStrings.add(field.getName());
+            boolean isAvailable = availableKeys.contains(field.getName());
+            if (checkOnlyAvailable.isChecked() && !isAvailable
+                    || !field.getName().startsWith(starts)
+                    || !checkFields.isChecked()
+                    || buttonsToAdd.stream().anyMatch(btn -> btn.text.equals(field.getName()))
+            ) continue;
+
+            ButtonInfo btn = new ButtonInfo(field.getName());
+            btn.setType(ButtonInfoType.FIELD);
+            if (isAvailable) btn.setPath(toSearch + "." + field.getName());
+
+            buttonsToAdd.add(btn);
+        }
+
+        availableKeys.stream().filter(key -> !knownStrings.contains(key) && key.startsWith(starts))
+                .forEach(key -> {
+                    ButtonInfo btn = new ButtonInfo(key);
+                    btn.setPath(toSearch + "." + key);
+                    buttonsToAdd.add(btn);
+                });
+        buttonsToAdd.sort(Comparator.comparing(btn -> btn.text));
+
+        for (ButtonInfo buttonInfo : buttonsToAdd) {
+            buttonInfo.addTo(resultsShow, () -> {
+                searchField.setText(buttonInfo.getPath());
+                search();
+            });
+        }
+        if (buttonsToAdd.isEmpty()) resultsShow.add(LABEL_EMPTY);
     }
 
+    private static class ButtonInfo {
+        public final String text;
+        private String path = null;
+        private ButtonInfoType type = ButtonInfoType.UNKNOWN;
+
+        public ButtonInfo(String text) {
+            this.text = text;
+        }
+
+        public void addTo(Table resultsShow, Runnable onClick) {
+            String labelText = getPath() == null ? "[red]\uE88F[] " : "[green]\uE88E[] ";
+            labelText += getType().v;
+            labelText += text;
+
+            if (getPath() == null) {
+                resultsShow.add(new Label(labelText));
+                resultsShow.row();
+                return;
+            }
+            Button btn = (Button) new Button(Styles.cleart).left();
+            btn.add(new Label(labelText));
+            btn.clicked(onClick);
+            resultsShow.add(btn).growX();
+            resultsShow.row();
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        public void setPath(String path) {
+            this.path = path;
+        }
+
+        public ButtonInfoType getType() {
+            return type;
+        }
+
+        public void setType(ButtonInfoType type) {
+            this.type = type;
+        }
+    }
+
+    enum ButtonInfoType {
+        METHOD("[red]\uE282[] "),
+        FIELD("[gold]\uE286[] "),
+        UNKNOWN("[purple]\uEE89[] ");
+
+        public final String v;
+        ButtonInfoType(String v) {
+            this.v = v;
+        }
+    }
 }

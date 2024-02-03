@@ -36,7 +36,7 @@ public class JsTester extends CodableTester {
     public class JsTesterBuild extends CodableTesterBuild {
 
         public String code = "";
-        public Runnable RunFn = () -> {
+        public Runnable runFn = () -> {
         };
         public String errorMessage = "";
         public boolean compileError = false;
@@ -68,7 +68,7 @@ public class JsTester extends CodableTester {
                 if (synchronizedFile != null) tab.setSync(synchronizedFile, true);
 
                 ide.setOnSave(codeIde -> this.configure(tab.code));
-                tab.onSynchronize = (file) -> this.synchronizedFile = file;
+                tab.onSynchronize = file -> this.synchronizedFile = file;
 
                 ide.show();
                 deselect();
@@ -79,7 +79,7 @@ public class JsTester extends CodableTester {
 
         public void run() {
             try {
-                this.RunFn.run();
+                this.runFn.run();
             } catch (Throwable e) {
                 errorMessage = e.getMessage();
             }
@@ -111,6 +111,7 @@ public class JsTester extends CodableTester {
             Pools.free(l);
         }
 
+        @Override
         public void updateMode() {
             if (code.isEmpty()) mode = TestersModes.EMPTY;
             else if (!errorMessage.isEmpty()) {
@@ -124,12 +125,12 @@ public class JsTester extends CodableTester {
 
             Scripts scripts = Vars.mods.getScripts();
             try {
-                String code = "(function(){" + value + " \n})()";
-                Script script = scripts.context.compileString(code, "JsTester", 1);
+                String textCode = "(function(){" + value + " \n})()";
+                Script script = scripts.context.compileString(textCode, "JsTester", 1);
 
-                if (script == null) RunFn = () -> {
+                if (script == null) runFn = () -> {
                 };
-                else RunFn = () -> script.exec(scripts.context, scripts.scope);
+                else runFn = () -> script.exec(scripts.context, scripts.scope);
 
                 errorMessage = "";
                 compileError = false;
