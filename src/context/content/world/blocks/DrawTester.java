@@ -60,9 +60,9 @@ public class DrawTester extends CodableTester {
                 if (synchronizedFile != null) tab.setSync(synchronizedFile, true);
                 ide.setOnSave(codeIde -> {
                     codeIde.close();
-                    this.configure(tab.code);
+                    this.configure(tab.getCode());
                 });
-                tab.onSynchronize = (file) -> this.synchronizedFile = file;
+                tab.setOnSynchronize((file) -> this.synchronizedFile = file);
                 ide.hideTabs(true);
                 ide.show();
                 deselect();

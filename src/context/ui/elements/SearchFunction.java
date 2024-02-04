@@ -18,17 +18,16 @@ import java.util.*;
 
 public class SearchFunction {
 
-    public static final Label LABEL_EMPTY = new Label("@context.search-function.empty-field");
     public static final Table cont = new Table();
-    public static final Table infoContent = new Table();
+    private static final Label LABEL_EMPTY = new Label("@context.search-function.empty-field");
+    private static final Table infoContent = new Table();
     private static final TextField searchField = new TextField("Vars");
     private static final Table resultsShow = new Table();
     private static final CheckBox checkOnlyAvailable = new CheckBox("[green]\uE88E[] " + Core.bundle.get("context.search-function.only-available"));
     private static final CheckBox checkMethods = new CheckBox("[red]\uE282[] " + Core.bundle.get("context.search-function.methods"));
     private static final CheckBox checkFields = new CheckBox("[gold]\uE286[] " + Core.bundle.get("context.search-function.fields"));
 
-
-    public SearchFunction() {
+    static {
         cont.clearChildren();
         resultsShow.defaults().left();
         // Search Area
@@ -36,7 +35,7 @@ public class SearchFunction {
         tableSearch.label(() -> "@context.search");
         tableSearch.marginBottom(10);
         tableSearch.add(searchField).growX();
-        searchField.changed(this::search);
+        searchField.changed(SearchFunction::search);
         searchField.setValidator(s -> s.matches("^[\\w.]*$"));
         cont.add(tableSearch).growX();
         cont.row();
@@ -67,19 +66,19 @@ public class SearchFunction {
         filters.label(() -> "@context.search-function.filters");
         filters.row();
         filters.setBackground(Tex.button);
-        filters.add(checkOnlyAvailable).left().padTop(5).get().changed(this::search);
+        filters.add(checkOnlyAvailable).left().padTop(5).get().changed(SearchFunction::search);
         checkMethods.setChecked(true);
         filters.row();
-        filters.add(checkMethods).left().padTop(5).get().changed(this::search);
+        filters.add(checkMethods).left().padTop(5).get().changed(SearchFunction::search);
         checkMethods.setChecked(true);
         filters.row();
-        filters.add(checkFields).left().padTop(5).get().changed(this::search);
+        filters.add(checkFields).left().padTop(5).get().changed(SearchFunction::search);
         checkFields.setChecked(true);
 
         search();
     }
 
-    private void search() {
+    private static void search() {
         String toSearch = searchField.getText();
         String path = null;
         if (toSearch.contains(".")) path = toSearch.substring(0, toSearch.lastIndexOf("."));
@@ -93,7 +92,7 @@ public class SearchFunction {
         }
     }
 
-    private boolean displaySearch(String toSearch, String starts) {
+    private static boolean displaySearch(String toSearch, String starts) {
         infoContent.clearChildren();
         Object obj;
         ArrayList<String> availableKeys;
@@ -190,7 +189,7 @@ public class SearchFunction {
         Scripts s = Vars.mods.getScripts();
         return s.context.evaluateString(s.scope, code, "SearchTerms", 1);
     }
-    private void createButtonsFromClass(String toSearch, String starts, Class<?> cl, List<String> availableKeys) {
+    private static void createButtonsFromClass(String toSearch, String starts, Class<?> cl, List<String> availableKeys) {
         Set<String> knownStrings = new HashSet<>();
         ArrayList<ButtonInfo> buttonsToAdd = new ArrayList<>();
         Method[] allMethods = cl.getMethods();

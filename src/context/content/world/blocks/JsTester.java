@@ -67,8 +67,8 @@ public class JsTester extends CodableTester {
 
                 if (synchronizedFile != null) tab.setSync(synchronizedFile, true);
 
-                ide.setOnSave(codeIde -> this.configure(tab.code));
-                tab.onSynchronize = file -> this.synchronizedFile = file;
+                ide.setOnSave(codeIde -> this.configure(tab.getCode()));
+                tab.setOnSynchronize(file -> this.synchronizedFile = file);
 
                 ide.show();
                 deselect();
