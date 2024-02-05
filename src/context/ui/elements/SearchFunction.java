@@ -11,9 +11,11 @@ import mindustry.gen.Tex;
 import mindustry.mod.Scripts;
 import mindustry.ui.Styles;
 import rhino.NativeArray;
+import rhino.NativeJavaClass;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.*;
 
 public class SearchFunction {
@@ -137,22 +139,70 @@ public class SearchFunction {
 
         if (obj instanceof rhino.NativeJavaMethod nObj) {
 
-            // ! To change
-            infoContent.label(() -> "Type: Method");
-            infoContent.row();
-            infoContent.label(() -> "Class: <report this error>");
-            String[] values = nObj.toString().split("\n");
-            for (String value : values) {
-                resultsShow.add(new Label(value.trim())).growX();
-                resultsShow.row();
+            String methodName = toSearch.substring(toSearch.lastIndexOf(".") + 1);
+            try {
+                if (!toSearch.contains(".")) throw new ClassNotFoundException();
+                String clString = toSearch.substring(0, toSearch.lastIndexOf("."));
+                Class<?> cl;
+                Object retObj = execute(clString);
+                if (retObj instanceof rhino.NativeJavaClass njc) {
+                    cl = (Class<?>) njc.unwrap();
+                } else if (retObj instanceof rhino.NativeJavaObject njo) {
+                    cl = njo.unwrap().getClass();
+                } else {
+                    throw new ClassNotFoundException();
+                }
+                ArrayList<Method> met = new ArrayList<>();
+                for (Method method : cl.getMethods()) {
+                    if (!method.getName().equals(methodName)) continue;
+                    met.add(method);
+                }
+                if (met.isEmpty()) throw new ClassNotFoundException();
+
+                infoContent.label(() -> "Type: Method");
+                infoContent.row();
+                infoContent.label(() -> "Name: " + methodName);
+                infoContent.row();
+                infoContent.label(() -> "Class: " + cl.getName());
+                infoContent.row();
+                infoContent.label(() -> "Overloads: " + met.size());
+                for (Method method : met) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(method.getName())
+                            .append("(");
+                    ArrayList<Parameter> params = new ArrayList<>(Arrays.asList(method.getParameters()));
+                    ArrayList<Class<?>> types = new ArrayList<>(Arrays.asList(method.getParameterTypes()));
+                    for (int i = 0; i < params.size(); i++) {
+                        Parameter param = params.get(i);
+                        Class<?> type = types.get(i);
+                        if (param.isNamePresent()) sb.append(param.getName()).append(": ").append(type.getSimpleName());
+                        else sb.append(type.getSimpleName());
+                        if (i < params.size() - 1) sb.append(", ");
+                    }
+                    sb.append("): ").append(method.getReturnType().getSimpleName());
+                    resultsShow.add(new Label(sb.toString())).growX();
+                    resultsShow.row();
+                }
+
+            } catch (Exception e) {
+                infoContent.label(() -> "Type: Method");
+                infoContent.row();
+                infoContent.label(() -> "Name: " + methodName);
+                infoContent.row();
+                infoContent.label(() -> "Class: Not found");
+                String[] values = nObj.toString().split("\n");
+                for (String value : values) {
+                    resultsShow.add(new Label(value.trim())).growX();
+                    resultsShow.row();
+                }
             }
             return true;
         }
 
-        if(obj instanceof rhino.NativeObject) {
+        if (obj instanceof rhino.NativeObject) {
             // ! To change
             infoContent.label(() -> "Type: Object");
-            for(String key : availableKeys) {
+            for (String key : availableKeys) {
                 ButtonInfo btn = new ButtonInfo(key);
                 btn.setPath(toSearch + "." + key);
                 btn.addTo(resultsShow, () -> {
@@ -160,20 +210,20 @@ public class SearchFunction {
                     search();
                 });
             }
-            if(availableKeys.isEmpty()) resultsShow.add(LABEL_EMPTY);
+            if (availableKeys.isEmpty()) resultsShow.add(LABEL_EMPTY);
             return true;
         }
 
-        if(obj instanceof java.lang.String || obj instanceof java.lang.Number || obj instanceof java.lang.Boolean) {
+        if (obj instanceof java.lang.String || obj instanceof java.lang.Number || obj instanceof java.lang.Boolean) {
             // ! To change
             infoContent.label(() -> "Type: " + obj.getClass().getSimpleName());
             infoContent.row();
-            if(obj instanceof java.lang.String str) {
-                str = str.replaceAll("[\n\t]"," ");
-                if(str.length() > 20) str = str.substring(0,17)+"...";
+            if (obj instanceof java.lang.String str) {
+                str = str.replaceAll("[\n\t]", " ");
+                if (str.length() > 20) str = str.substring(0, 17) + "...";
                 infoContent.add(new Label("Value: " + str));
             } else {
-            infoContent.label(() -> "Value: " + obj);
+                infoContent.label(() -> "Value: " + obj);
             }
             return true;
         }
@@ -181,7 +231,7 @@ public class SearchFunction {
         // ! To change
         infoContent.label(() -> "Type: Unknown");
         infoContent.row();
-        infoContent.label(() -> "JavaClass: "+obj.getClass().getName());
+        infoContent.label(() -> "JavaClass: " + obj.getClass().getName());
         return true;
     }
 
@@ -189,6 +239,7 @@ public class SearchFunction {
         Scripts s = Vars.mods.getScripts();
         return s.context.evaluateString(s.scope, code, "SearchTerms", 1);
     }
+
     private static void createButtonsFromClass(String toSearch, String starts, Class<?> cl, List<String> availableKeys) {
         Set<String> knownStrings = new HashSet<>();
         ArrayList<ButtonInfo> buttonsToAdd = new ArrayList<>();
@@ -292,6 +343,7 @@ public class SearchFunction {
         UNKNOWN("[purple]\uEE89[] ");
 
         public final String v;
+
         ButtonInfoType(String v) {
             this.v = v;
         }
