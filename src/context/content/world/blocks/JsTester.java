@@ -35,12 +35,12 @@ public class JsTester extends CodableTester {
 
     public class JsTesterBuild extends CodableTesterBuild {
 
-        public String code = "";
-        public Runnable runFn = () -> {
+        private String code = "";
+        private Runnable runFn = () -> {
         };
-        public String errorMessage = "";
-        public boolean compileError = false;
-        public Fi synchronizedFile = null;
+        private String errorMessage = "";
+        private boolean compileError = false;
+        private Fi synchronizedFile = null;
 
         @Override
         public void buildConfiguration(Table table) {

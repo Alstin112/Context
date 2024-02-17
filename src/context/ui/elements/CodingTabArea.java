@@ -3,15 +3,21 @@ package context.ui.elements;
 import arc.files.Fi;
 import arc.func.Cons;
 import arc.graphics.Color;
-import arc.scene.ui.*;
+import arc.input.KeyCode;
+import arc.scene.event.InputEvent;
+import arc.scene.event.InputListener;
+import arc.scene.ui.Button;
+import arc.scene.ui.Label;
+import arc.scene.ui.TextButton;
+import arc.scene.ui.TextField;
 import arc.scene.ui.layout.Table;
 import arc.util.Align;
 import arc.util.Timer;
 import context.ui.ColoredTextArea;
 import context.ui.TabArea;
+import context.ui.dialogs.SearchFunction;
 import mindustry.Vars;
 import mindustry.gen.Icon;
-import mindustry.gen.Tex;
 import mindustry.ui.Styles;
 import mindustry.ui.dialogs.BaseDialog;
 
@@ -67,7 +73,21 @@ public class CodingTabArea extends TabArea {
         TextField.TextFieldStyle codeAreaStyle = new TextField.TextFieldStyle(Styles.defaultField);
         codeAreaStyle.background = null;
         codeArea.setStyle(codeAreaStyle);
-        codeArea.changed(() -> setCode(codeArea.getText()));
+        CodingTabArea tab = this;
+        codeArea.addListener(new InputListener() {
+            @Override
+            public boolean keyDown(InputEvent event, KeyCode keycode) {
+                if(keycode == KeyCode.f1) {
+                    tab.showSearch();
+                    int start = codeArea.getSelectionStart();
+                    int cursor = codeArea.getCursorPosition();
+                    codeArea.setSelection(Math.min(start, cursor), Math.max(start, cursor));
+                    String selectedText = codeArea.getSelection();
+                    SearchFunction.setText(selectedText);
+                }
+                return true;
+            }
+        });
 
         behindTable.add(codeArea).grow();
     }
@@ -114,17 +134,41 @@ public class CodingTabArea extends TabArea {
             });
         });
         Button searchTerm = new TextButton("@context.search-term");
-        searchTerm.clicked(() -> {
-            BaseDialog bd = new BaseDialog("Search Function");
-            bd.cont.add(SearchFunction.cont).grow();
-            bd.cont.setBackground(Tex.button);
-            bd.buttons.button("@exit", bd::hide).size(120f, 60f);
-            bd.closeOnBack();
-            bd.show();
-        });
+        searchTerm.clicked(this::showSearch);
         table.add(buttonSync).size(120f, 60f).padRight(4f);
         table.add(searchTerm).size(120f, 60f).padRight(4f);
         return table;
+    }
+
+    private void showSearch() {
+        SearchFunction.show(str -> {
+            codeArea.getScene().setKeyboardFocus(codeArea);
+            String text = codeArea.getText();
+            int cursor = codeArea.getCursorPosition();
+            if(cursor == 0) {
+                codeArea.setText(str+text);
+                codeArea.setCursorPosition(str.length());
+                codeArea.setSelection(0, str.length());
+                return;
+            }
+            char c = text.charAt(cursor-1);
+            for (int i = str.length()-1; i >= 0; i--) {
+                if(c == str.charAt(i) && i < cursor && text.substring(cursor-i-1, cursor).equals(str.substring(0, i+1))) {
+                    int finalCursor = cursor - i - 1 + str.length();
+                    codeArea.setText(
+                            text.substring(0, cursor-i-1) +
+                                    str +
+                                    text.substring(cursor)
+                    );
+                    codeArea.setCursorPosition(finalCursor);
+                    codeArea.setSelection(cursor-i-1, finalCursor);
+                    return;
+                }
+            }
+            codeArea.setText(text.substring(0, cursor) + str + text.substring(cursor));
+            codeArea.setCursorPosition(cursor + str.length());
+            codeArea.setSelection(cursor, cursor + str.length());
+        });
     }
 
     public void setCode(String code) {

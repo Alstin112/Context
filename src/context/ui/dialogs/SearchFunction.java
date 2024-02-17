@@ -1,26 +1,35 @@
-package context.ui.elements;
+package context.ui.dialogs;
 
 import arc.Core;
+import arc.func.Cons;
 import arc.scene.ui.Button;
 import arc.scene.ui.CheckBox;
 import arc.scene.ui.Label;
 import arc.scene.ui.TextField;
 import arc.scene.ui.layout.Table;
 import mindustry.Vars;
+import mindustry.gen.Icon;
 import mindustry.gen.Tex;
 import mindustry.mod.Scripts;
 import mindustry.ui.Styles;
+import mindustry.ui.dialogs.BaseDialog;
 import rhino.NativeArray;
-import rhino.NativeJavaClass;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.text.MessageFormat;
 import java.util.*;
 
 public class SearchFunction {
 
-    public static final Table cont = new Table();
+    private static final BaseDialog bd = new BaseDialog("Search Classes") {
+        @Override
+        public void hide() {
+            onUpload = null;
+            super.hide();
+        }
+    };
     private static final Label LABEL_EMPTY = new Label("@context.search-function.empty-field");
     private static final Table infoContent = new Table();
     private static final TextField searchField = new TextField("Vars");
@@ -28,22 +37,29 @@ public class SearchFunction {
     private static final CheckBox checkOnlyAvailable = new CheckBox("[green]\uE88E[] " + Core.bundle.get("context.search-function.only-available"));
     private static final CheckBox checkMethods = new CheckBox("[red]\uE282[] " + Core.bundle.get("context.search-function.methods"));
     private static final CheckBox checkFields = new CheckBox("[gold]\uE286[] " + Core.bundle.get("context.search-function.fields"));
+    private static Cons<String> onUpload = null;
 
     static {
-        cont.clearChildren();
+        bd.cont.setBackground(Tex.button);
         resultsShow.defaults().left();
+
         // Search Area
         Table tableSearch = new Table();
+        tableSearch.button(Icon.copy, () -> Core.app.setClipboardText(searchField.getText())).size(40f).padRight(5f);
+        tableSearch.button(Icon.upload, () -> {
+            if(getOnUpload() != null) getOnUpload().get(searchField.getText());
+            bd.hide();
+        }).size(40f).padRight(5f);
         tableSearch.label(() -> "@context.search");
-        tableSearch.marginBottom(10);
+        tableSearch.marginBottom(10f);
         tableSearch.add(searchField).growX();
         searchField.changed(SearchFunction::search);
         searchField.setValidator(s -> s.matches("^[\\w.]*$"));
-        cont.add(tableSearch).growX();
-        cont.row();
+        bd.cont.add(tableSearch).growX();
+        bd.cont.row();
 
         // Main Screen with the results | options
-        Table screen = cont.table().grow().get();
+        Table screen = bd.cont.table().grow().get();
 
         // Results on left
         Table bigResult = screen.table().grow().colspan(4).get();
@@ -78,9 +94,29 @@ public class SearchFunction {
         checkFields.setChecked(true);
 
         search();
+        bd.addCloseButton();
     }
 
+    public static String getText() {
+        return searchField.getText();
+    }
+
+    public static void setText(String text) {
+        searchField.setText(text);
+        searchField.setCursorPosition(text.length());
+    }
+
+    public static void show() {
+        show(null);
+    }
+    public static void show(Cons<String> onUpload) {
+        bd.show();
+        searchField.getScene().setKeyboardFocus(searchField);
+        SearchFunction.onUpload = onUpload;
+        search();
+    }
     private static void search() {
+        if(!searchField.isValid()) return;
         String toSearch = searchField.getText();
         String path = null;
         if (toSearch.contains(".")) path = toSearch.substring(0, toSearch.lastIndexOf("."));
@@ -167,21 +203,34 @@ public class SearchFunction {
                 infoContent.row();
                 infoContent.label(() -> "Overloads: " + met.size());
                 for (Method method : met) {
-                    StringBuilder sb = new StringBuilder();
-                    sb.append(method.getName())
-                            .append("(");
+                    StringBuilder args = new StringBuilder();
+
+                    args.append("(");
                     ArrayList<Parameter> params = new ArrayList<>(Arrays.asList(method.getParameters()));
                     ArrayList<Class<?>> types = new ArrayList<>(Arrays.asList(method.getParameterTypes()));
                     for (int i = 0; i < params.size(); i++) {
                         Parameter param = params.get(i);
                         Class<?> type = types.get(i);
-                        if (param.isNamePresent()) sb.append(param.getName()).append(": ").append(type.getSimpleName());
-                        else sb.append(type.getSimpleName());
-                        if (i < params.size() - 1) sb.append(", ");
+                        if (param.isNamePresent()) args.append(param.getName()).append(": ").append(type.getSimpleName());
+                        else args.append(type.getSimpleName());
+                        if (i < params.size() - 1) args.append(", ");
                     }
-                    sb.append("): ").append(method.getReturnType().getSimpleName());
-                    resultsShow.add(new Label(sb.toString())).growX();
-                    resultsShow.row();
+                    args.append(")");
+
+                    String writeString = args.toString();
+                    String show = MessageFormat.format("{0}{1}: {2}",
+                            method.getName(),
+                            writeString,
+                            method.getReturnType().getSimpleName()
+                    );
+
+                    ButtonInfo btn = new ButtonInfo(show);
+                    btn.setPath(toSearch + writeString);
+                    btn.setType(ButtonInfoType.NULL);
+                    btn.addTo(resultsShow, () -> {
+                        searchField.setText(btn.getPath());
+                        search();
+                    });
                 }
 
             } catch (Exception e) {
@@ -294,12 +343,24 @@ public class SearchFunction {
         if (buttonsToAdd.isEmpty()) resultsShow.add(LABEL_EMPTY);
     }
 
+    public static Cons<String> getOnUpload() {
+        return onUpload;
+    }
+
+    public static void setOnUpload(Cons<String> onUpload) {
+        SearchFunction.onUpload = onUpload;
+    }
+
     private static class ButtonInfo {
         public final String text;
         private String path = null;
         private ButtonInfoType type = ButtonInfoType.UNKNOWN;
 
-        public ButtonInfo(String text) {
+    /**
+     * Creates a button to results
+     * @param text Label text
+     */
+    public ButtonInfo(String text) {
             this.text = text;
         }
 
@@ -340,6 +401,7 @@ public class SearchFunction {
     enum ButtonInfoType {
         METHOD("[red]\uE282[] "),
         FIELD("[gold]\uE286[] "),
+        NULL(""),
         UNKNOWN("[purple]\uEE89[] ");
 
         public final String v;

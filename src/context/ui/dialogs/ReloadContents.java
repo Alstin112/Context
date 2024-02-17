@@ -1,26 +1,26 @@
 package context.ui.dialogs;
 
-import arc.Events;
 import arc.util.Log;
 import mindustry.Vars;
 import mindustry.core.ContentLoader;
-import mindustry.game.EventType;
 import mindustry.mod.Mod;
 import mindustry.ui.dialogs.BaseDialog;
+import mindustry.ui.fragments.PlacementFragment;
+
+import java.lang.reflect.Method;
 
 public class ReloadContents {
 
-    private static BaseDialog dialog;
+    private static final BaseDialog dialog;
 
     static {
         dialog = new BaseDialog("Reload all blocks contents");
-        dialog.cont.add("Are you sure you want to reload all blocks contents?");
-        dialog.cont.row();
-        dialog.cont.add("You can reload only the blocks in your category");
+        dialog.cont.add("Are you sure you want to reload all blocks contents?\n" +
+                "You can reload only the blocks in your category");
         dialog.buttons.button("@reload-category", () -> {
             reload();
             dialog.hide();
-        });
+        }).size(210f);
         dialog.addCloseButton();
     }
 
@@ -53,6 +53,20 @@ public class ReloadContents {
         Vars.content.load();
 
         // Refresh the catalog
-        Events.fire(new EventType.UnlockEvent(Vars.content.block("context-icon-dictionary")));
+        if(Vars.state.isPlaying()) {
+            try {
+                PlacementFragment bfrag = Vars.ui.hudfrag.blockfrag;
+                Method rebuild = bfrag.getClass().getDeclaredMethod("rebuild");
+                rebuild.setAccessible(true);
+                rebuild.invoke(bfrag);
+            } catch (Exception e) {
+                Log.err("Failed to reload the categories, please reload your save.");
+            }
+
+            if(Vars.control.input.block != null) {
+                String name = Vars.control.input.block.name;
+                Vars.control.input.block = Vars.content.block(name);
+            }
+        }
     }
 }
