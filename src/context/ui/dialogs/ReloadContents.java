@@ -1,5 +1,6 @@
 package context.ui.dialogs;
 
+import arc.Core;
 import arc.util.Log;
 import mindustry.Vars;
 import mindustry.core.ContentLoader;
@@ -14,13 +15,12 @@ public class ReloadContents {
     private static final BaseDialog dialog;
 
     static {
-        dialog = new BaseDialog("Reload all blocks contents");
-        dialog.cont.add("Are you sure you want to reload all blocks contents?\n" +
-                "You can reload only the blocks in your category");
-        dialog.buttons.button("@reload-category", () -> {
+        dialog = new BaseDialog("@context.reload-contents.title");
+        dialog.cont.add("@context.reload-contents.warning");
+        dialog.buttons.button("@context.reload-contents.reload-category", () -> {
             reload();
             dialog.hide();
-        }).size(210f);
+        }).size(210f, 64f);
         dialog.addCloseButton();
     }
 
@@ -44,7 +44,7 @@ public class ReloadContents {
                 Vars.content.setCurrentMod(mod);
                 instance.loadContent();
             } catch (Exception e) {
-                Log.err("Failed to load mod content: @", mod.meta.name);
+                Log.err(Core.bundle.format("context.reload-contents.error-load-content", mod.meta.name));
             }
         });
         Vars.content.setCurrentMod(null);
@@ -60,7 +60,7 @@ public class ReloadContents {
                 rebuild.setAccessible(true);
                 rebuild.invoke(bfrag);
             } catch (Exception e) {
-                Log.err("Failed to reload the categories, please reload your save.");
+                Log.err(Core.bundle.get("context.reload-contents.error-reload-category"));
             }
 
             if(Vars.control.input.block != null) {

@@ -23,7 +23,7 @@ import java.util.*;
 
 public class SearchFunction {
 
-    private static final BaseDialog bd = new BaseDialog("Search Classes") {
+    private static final BaseDialog bd = new BaseDialog("@context.search-function.title") {
         @Override
         public void hide() {
             onUpload = null;
@@ -35,8 +35,8 @@ public class SearchFunction {
     private static final TextField searchField = new TextField("Vars");
     private static final Table resultsShow = new Table();
     private static final CheckBox checkOnlyAvailable = new CheckBox("[green]\uE88E[] " + Core.bundle.get("context.search-function.only-available"));
-    private static final CheckBox checkMethods = new CheckBox("[red]\uE282[] " + Core.bundle.get("context.search-function.methods"));
-    private static final CheckBox checkFields = new CheckBox("[gold]\uE286[] " + Core.bundle.get("context.search-function.fields"));
+    private static final CheckBox checkMethods = new CheckBox(ButtonInfoType.METHOD.v + Core.bundle.get("context.search-function.methods"));
+    private static final CheckBox checkFields = new CheckBox(ButtonInfoType.FIELD.v + Core.bundle.get("context.search-function.fields"));
     private static Cons<String> onUpload = null;
 
     static {
@@ -50,7 +50,7 @@ public class SearchFunction {
             if(getOnUpload() != null) getOnUpload().get(searchField.getText());
             bd.hide();
         }).size(40f).padRight(5f);
-        tableSearch.label(() -> "@context.search");
+        tableSearch.add("@context.search");
         tableSearch.marginBottom(10f);
         tableSearch.add(searchField).growX();
         searchField.changed(SearchFunction::search);
@@ -73,7 +73,7 @@ public class SearchFunction {
         // Info
         Table info = optionsSide.table().grow().get().top();
         info.setBackground(Tex.button);
-        info.label(() -> "@context.search-function.info");
+        info.add("@context.search-function.info");
         info.row();
         info.add(infoContent).grow();
 
@@ -81,7 +81,7 @@ public class SearchFunction {
 
         // Filters
         Table filters = optionsSide.table().grow().get();
-        filters.label(() -> "@context.search-function.filters");
+        filters.add("@context.search-function.filters");
         filters.row();
         filters.setBackground(Tex.button);
         filters.add(checkOnlyAvailable).left().padTop(5).get().changed(SearchFunction::search);
@@ -142,7 +142,7 @@ public class SearchFunction {
                 availableKeys.add((String) key);
             }
         } catch (RuntimeException e) {
-            infoContent.label(() -> Core.bundle.get("context.not-found"));
+            infoContent.add("@context.not-found");
             return false;
         }
 
@@ -154,10 +154,7 @@ public class SearchFunction {
                 return false;
             }
 
-            // ! To change
-            infoContent.label(() -> "Type: Class");
-            infoContent.row();
-            infoContent.label(() -> "Name: " + cl.getName());
+            infoContent.add(Core.bundle.format("context.search-function.info-class", cl.getName()));
             createButtonsFromClass(toSearch, starts, cl, availableKeys);
             return true;
         }
@@ -165,10 +162,7 @@ public class SearchFunction {
         if (obj instanceof rhino.NativeJavaObject nObj) {
             Class<?> cl = nObj.unwrap().getClass();
 
-            // ! To change
-            infoContent.label(() -> "Type: Instance");
-            infoContent.row();
-            infoContent.label(() -> "Class: " + cl.getName());
+            infoContent.add(Core.bundle.format( "context.search-function.info-instance", cl.getName()));
             createButtonsFromClass(toSearch, starts, cl, availableKeys);
             return true;
         }
@@ -195,13 +189,7 @@ public class SearchFunction {
                 }
                 if (met.isEmpty()) throw new ClassNotFoundException();
 
-                infoContent.label(() -> "Type: Method");
-                infoContent.row();
-                infoContent.label(() -> "Name: " + methodName);
-                infoContent.row();
-                infoContent.label(() -> "Class: " + cl.getName());
-                infoContent.row();
-                infoContent.label(() -> "Overloads: " + met.size());
+                infoContent.add(Core.bundle.format("context.search-function.info-method", methodName, cl.getName(), met.size()));
                 for (Method method : met) {
                     StringBuilder args = new StringBuilder();
 
@@ -234,15 +222,17 @@ public class SearchFunction {
                 }
 
             } catch (Exception e) {
-                infoContent.label(() -> "Type: Method");
-                infoContent.row();
-                infoContent.label(() -> "Name: " + methodName);
-                infoContent.row();
-                infoContent.label(() -> "Class: Not found");
                 String[] values = nObj.toString().split("\n");
+                infoContent.add(Core.bundle.format("context.search-function.info-method", methodName, "Not found", values.length));
                 for (String value : values) {
-                    resultsShow.add(new Label(value.trim())).growX();
                     resultsShow.row();
+                    ButtonInfo btn = new ButtonInfo(value.trim());
+                    btn.setPath(toSearch + value.trim());
+                    btn.setType(ButtonInfoType.NULL);
+                    btn.addTo(resultsShow, () -> {
+                        searchField.setText(btn.getPath());
+                        search();
+                    });
                 }
             }
             return true;
@@ -250,7 +240,7 @@ public class SearchFunction {
 
         if (obj instanceof rhino.NativeObject) {
             // ! To change
-            infoContent.label(() -> "Type: Object");
+            infoContent.add("@context.search-function.info-object");
             for (String key : availableKeys) {
                 ButtonInfo btn = new ButtonInfo(key);
                 btn.setPath(toSearch + "." + key);
@@ -264,23 +254,19 @@ public class SearchFunction {
         }
 
         if (obj instanceof java.lang.String || obj instanceof java.lang.Number || obj instanceof java.lang.Boolean) {
-            // ! To change
-            infoContent.label(() -> "Type: " + obj.getClass().getSimpleName());
-            infoContent.row();
+            String value;
             if (obj instanceof java.lang.String str) {
                 str = str.replaceAll("[\n\t]", " ");
                 if (str.length() > 20) str = str.substring(0, 17) + "...";
-                infoContent.add(new Label("Value: " + str));
+                value = "Value: " + str;
             } else {
-                infoContent.label(() -> "Value: " + obj);
+                value = "Value: " + obj;
             }
+            infoContent.add(Core.bundle.format("context.search-function.info-primitive", obj.getClass().getSimpleName(), value));
             return true;
         }
 
-        // ! To change
-        infoContent.label(() -> "Type: Unknown");
-        infoContent.row();
-        infoContent.label(() -> "JavaClass: " + obj.getClass().getName());
+        infoContent.add(Core.bundle.format("context.search-function.info-unknown", obj.getClass().getName()));
         return true;
     }
 

@@ -133,7 +133,7 @@ public class CodingTabArea extends TabArea {
                 });
             });
         });
-        Button searchTerm = new TextButton("@context.search-term");
+        Button searchTerm = new TextButton("@context.search-function.button-name");
         searchTerm.clicked(this::showSearch);
         table.add(buttonSync).size(120f, 60f).padRight(4f);
         table.add(searchTerm).size(120f, 60f).padRight(4f);
