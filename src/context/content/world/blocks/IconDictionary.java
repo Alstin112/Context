@@ -23,11 +23,6 @@ public class IconDictionary extends BaseContextBlock {
         super(name);
     }
 
-    @Override
-    public void load() {
-        super.load();
-    }
-
     public static void reloadCharIcons() {
         StringBuilder sbChar = new StringBuilder();
         StringBuilder sbImg = new StringBuilder();
@@ -62,7 +57,7 @@ public class IconDictionary extends BaseContextBlock {
                 Table optionsTab = new Table();
                 for (int i = 0; i < iconsChar.length(); i++) {
                     char c = iconsChar.charAt(i);
-                    optionsTab.button(Fonts.getGlyph(Fonts.def, iconsChar.charAt(i)), Styles.cleari, () -> SelectedIcon(table, c)).size(40f);
+                    optionsTab.button(Fonts.getGlyph(Fonts.def, iconsChar.charAt(i)), Styles.cleari, () -> selectedIcon(table, c)).size(40f);
                     if (i % 4 == 3) optionsTab.row();
                 }
                 for (int i = 0; i < 3 - (3 + iconsChar.length()) % 4; i++) {
@@ -80,7 +75,7 @@ public class IconDictionary extends BaseContextBlock {
                 Table optionsTab = new Table();
                 for (int i = 0; i < iconsMind.length(); i++) {
                     char c = iconsMind.charAt(i);
-                    optionsTab.button(Fonts.getGlyph(Fonts.def, iconsMind.charAt(i)), Styles.cleari, () -> SelectedIcon(table, c)).size(40f);
+                    optionsTab.button(Fonts.getGlyph(Fonts.def, iconsMind.charAt(i)), Styles.cleari, () -> selectedIcon(table, c)).size(40f);
                     if (i % 4 == 3) optionsTab.row();
                 }
                 for (int i = 0; i < 3 - (3 + iconsMind.length()) % 4; i++) {
@@ -98,7 +93,7 @@ public class IconDictionary extends BaseContextBlock {
                 Table optionsTab = new Table();
                 for (int i = 0; i < iconsImg.length(); i++) {
                     char c = iconsImg.charAt(i);
-                    optionsTab.button(Fonts.getGlyph(Fonts.def, iconsImg.charAt(i)), Styles.cleari, () -> SelectedIcon(table, c)).size(40f);
+                    optionsTab.button(Fonts.getGlyph(Fonts.def, iconsImg.charAt(i)), Styles.cleari, () -> selectedIcon(table, c)).size(40f);
                     if (i % 4 == 3) optionsTab.row();
                 }
                 for (int i = 0; i < 3 - (3 + iconsImg.length()) % 4; i++) {
@@ -118,30 +113,20 @@ public class IconDictionary extends BaseContextBlock {
             table.add(catButtons);
         }
 
-        public void SelectedIcon(Table t, char c) {
-           // table.setBackground(Styles.black6);
+        public void selectedIcon(Table t, char c) {
             t.clearChildren();
             Table table = t.table().get();
             table.setBackground(Styles.black6);
-            table.label(() -> "@context.icon-dictionary.click-to-copy").colspan(2);
+            table.label(() -> "@block.context-icon-dictionary.click-to-copy").colspan(2);
             table.row();
             Table copyCharTab = new Table();
-            copyCharTab.button(Icon.fileText, Styles.defaulti, () -> {
-                //.showInfoFade("@context.icon-dictionary.copied-to-clipboard");
-                Core.app.setClipboardText(c + "");
-            }).size(40f);
+            copyCharTab.button(Icon.fileText, Styles.defaulti, () -> Core.app.setClipboardText(c + "")).size(40f);
 
             String code = Iconc.codes.findKey(c);
             if (code != null && Icon.icons.containsKey(code)) {
-                copyCharTab.button(Icon.icons.get(code), Styles.defaulti, () -> {
-                    //.showInfoFade("@context.icon-dictionary.copied-to-clipboard");
-                    Core.app.setClipboardText("Icon."+code);
-                }).size(40f);
+                copyCharTab.button(Icon.icons.get(code), Styles.defaulti, () -> Core.app.setClipboardText("Icon."+code)).size(40f);
                 if(Icon.icons.containsKey(code+"Small")) {
-                    copyCharTab.button(Icon.icons.get(code+"Small"), Styles.defaulti, () -> {
-                        //.showInfoFade("@context.icon-dictionary.copied-to-clipboard");
-                        Core.app.setClipboardText("Icon."+code+"Small");
-                    }).size(40f);
+                    copyCharTab.button(Icon.icons.get(code+"Small"), Styles.defaulti, () -> Core.app.setClipboardText("Icon."+code+"Small")).size(40f);
                 }
             }
             table.add(copyCharTab).growX();
@@ -149,7 +134,6 @@ public class IconDictionary extends BaseContextBlock {
 
         @Override
         public void updateTableAlign(Table table) {
-//            Log.info("deu update");
             Vec2 pos = Core.input.mouseScreen(x, y + size * tilesize / 2f + 1);
             table.setPosition(pos.x, pos.y, Align.bottom);
         }

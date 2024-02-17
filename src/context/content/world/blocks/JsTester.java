@@ -80,7 +80,7 @@ public class JsTester extends CodableTester {
         public void run() {
             try {
                 this.runFn.run();
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 errorMessage = e.getMessage();
             }
         }
@@ -125,7 +125,8 @@ public class JsTester extends CodableTester {
 
             Scripts scripts = Vars.mods.getScripts();
             try {
-                String textCode = "(function(){" + value + " \n})()";
+                String textCode = "(function(){" + value + " \n}).apply(Vars.world.build(" + this.tile.x+","+this.tile.y+"))";
+
                 Script script = scripts.context.compileString(textCode, "JsTester", 1);
 
                 if (script == null) runFn = () -> {
@@ -134,7 +135,7 @@ public class JsTester extends CodableTester {
 
                 errorMessage = "";
                 compileError = false;
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 errorMessage = e.getMessage();
                 compileError = true;
             }

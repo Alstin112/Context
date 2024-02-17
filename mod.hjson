@@ -1,8 +1,10 @@
 displayName: "Context"
 name: "context"
 author: "Alstin112 and Flintyx"
-main: "context.Context"
 description: "this mod add more command blocks to help mod-creators, inpired in \"testers\" by [royal]sk7725[]"
-version: 1.0
+
 minGameVersion: 146
+version: 1.0
+
 java: true
+main: "context.Context"
