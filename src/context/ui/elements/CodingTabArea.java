@@ -78,12 +78,12 @@ public class CodingTabArea extends TabArea {
             @Override
             public boolean keyDown(InputEvent event, KeyCode keycode) {
                 if(keycode == KeyCode.f1) {
-                    tab.showSearch();
                     int start = codeArea.getSelectionStart();
                     int cursor = codeArea.getCursorPosition();
                     codeArea.setSelection(Math.min(start, cursor), Math.max(start, cursor));
                     String selectedText = codeArea.getSelection();
                     SearchFunction.setText(selectedText);
+                    tab.showSearch();
                 }
                 return true;
             }

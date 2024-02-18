@@ -2,18 +2,24 @@ package context.ui.dialogs;
 
 import arc.Core;
 import arc.func.Cons;
+import arc.input.KeyCode;
+import arc.math.Mathf;
+import arc.scene.Scene;
+import arc.scene.event.InputEvent;
+import arc.scene.event.InputListener;
 import arc.scene.ui.Button;
 import arc.scene.ui.CheckBox;
 import arc.scene.ui.Label;
 import arc.scene.ui.TextField;
 import arc.scene.ui.layout.Table;
+import arc.util.Log;
 import mindustry.Vars;
 import mindustry.gen.Icon;
 import mindustry.gen.Tex;
 import mindustry.mod.Scripts;
 import mindustry.ui.Styles;
 import mindustry.ui.dialogs.BaseDialog;
-import rhino.NativeArray;
+import rhino.*;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -32,30 +38,83 @@ public class SearchFunction {
     };
     private static final Label LABEL_EMPTY = new Label("@context.search-function.empty-field");
     private static final Table infoContent = new Table();
-    private static final TextField searchField = new TextField("Vars");
+    private static final TextField searchField = new TextField("Vars") {
+        @Override
+        protected InputListener createInputListener() {
+            return new TextFieldClickListener() {
+                @Override
+                public boolean keyDown(InputEvent event, KeyCode keycode) {
+
+                    if (disabled) return false;
+                    if (imeData != null) return true;
+                    Scene stage = getScene();
+                    if (stage == null || stage.getKeyboardFocus() != searchField) return false;
+
+                    switch (keycode) {
+                        case down -> {
+                            selectedLine = (selectedLine + 1) % resultsShow.getChildren().size;
+                            scheduleKeyRepeatTask(keycode);
+                            return true;
+                        }
+                        case up -> {
+                            selectedLine = (selectedLine - 1 + resultsShow.getChildren().size) % resultsShow.getChildren().size;
+                            scheduleKeyRepeatTask(keycode);
+                            return true;
+                        }
+                        case escape -> {
+                            if (selectedLine >= 0) selectedLine = -1;
+                            else searchField.getScene().setKeyboardFocus(null);
+                            return true;
+                        }
+                        default -> {
+                            return super.keyDown(event, keycode);
+                        }
+                    }
+                }
+
+                @Override
+                public boolean keyUp(InputEvent event, KeyCode keycode) {
+                    if(disabled) return false;
+                    if(imeData != null) return true;
+
+                    if(keycode == KeyCode.enter && selectedLine != -1) {
+                        selectedButton.fireClick();
+                        goEnd(true);
+                        if (Core.input.ctrl()) {
+                            if (getOnUpload() != null) getOnUpload().get(searchField.getText());
+                            bd.hide();
+                        }
+                        return true;
+                    }
+                    return super.keyUp(event, keycode);
+                }
+            };
+        }
+    };
     private static final Table resultsShow = new Table();
     private static final CheckBox checkOnlyAvailable = new CheckBox("[green]\uE88E[] " + Core.bundle.get("context.search-function.only-available"));
     private static final CheckBox checkMethods = new CheckBox(ButtonInfoType.METHOD.v + Core.bundle.get("context.search-function.methods"));
     private static final CheckBox checkFields = new CheckBox(ButtonInfoType.FIELD.v + Core.bundle.get("context.search-function.fields"));
-    private static Cons<String> onUpload = null;
+
+    private static Button selectedButton = null;
 
     static {
         bd.cont.setBackground(Tex.button);
         resultsShow.defaults().left();
 
         // Search Area
-        Table tableSearch = new Table();
-        tableSearch.button(Icon.copy, () -> Core.app.setClipboardText(searchField.getText())).size(40f).padRight(5f);
-        tableSearch.button(Icon.upload, () -> {
-            if(getOnUpload() != null) getOnUpload().get(searchField.getText());
-            bd.hide();
-        }).size(40f).padRight(5f);
-        tableSearch.add("@context.search");
-        tableSearch.marginBottom(10f);
-        tableSearch.add(searchField).growX();
+        bd.cont.table(tableSearch -> {
+            tableSearch.button(Icon.copy, () -> Core.app.setClipboardText(searchField.getText())).size(40f).padRight(5f);
+            tableSearch.button(Icon.upload, () -> {
+                if (getOnUpload() != null) getOnUpload().get(searchField.getText());
+                bd.hide();
+            }).size(40f).padRight(5f);
+            tableSearch.add("@context.search");
+            tableSearch.marginBottom(10f);
+            tableSearch.add(searchField).growX();
+        }).growX();
         searchField.changed(SearchFunction::search);
         searchField.setValidator(s -> s.matches("^[\\w.]*$"));
-        bd.cont.add(tableSearch).growX();
         bd.cont.row();
 
         // Main Screen with the results | options
@@ -94,8 +153,11 @@ public class SearchFunction {
         checkFields.setChecked(true);
 
         search();
-        bd.addCloseButton();
+        bd.buttons.button("@back", Icon.left, bd::hide).size(210f, 64f);
     }
+
+    private static Cons<String> onUpload = null;
+    private static int selectedLine = -1;
 
     public static String getText() {
         return searchField.getText();
@@ -109,19 +171,23 @@ public class SearchFunction {
     public static void show() {
         show(null);
     }
+
     public static void show(Cons<String> onUpload) {
         bd.show();
         searchField.getScene().setKeyboardFocus(searchField);
         SearchFunction.onUpload = onUpload;
+        Log.info("texto: '@'",searchField.getText());
         search();
     }
+
     private static void search() {
-        if(!searchField.isValid()) return;
+        if (!searchField.isValid()) return;
         String toSearch = searchField.getText();
         String path = null;
         if (toSearch.contains(".")) path = toSearch.substring(0, toSearch.lastIndexOf("."));
 
         resultsShow.clear();
+        ButtonInfo.resetActualId();
         boolean success = displaySearch(toSearch, "");
         if (!success && path != null) {
             int i = toSearch.lastIndexOf(".") + 1;
@@ -146,7 +212,7 @@ public class SearchFunction {
             return false;
         }
 
-        if (obj instanceof rhino.NativeJavaClass nObj) {
+        if (obj instanceof NativeJavaClass nObj) {
             Class<?> cl;
             try {
                 cl = (Class<?>) nObj.unwrap();
@@ -159,15 +225,15 @@ public class SearchFunction {
             return true;
         }
 
-        if (obj instanceof rhino.NativeJavaObject nObj) {
+        if (obj instanceof NativeJavaObject nObj) {
             Class<?> cl = nObj.unwrap().getClass();
 
-            infoContent.add(Core.bundle.format( "context.search-function.info-instance", cl.getName()));
+            infoContent.add(Core.bundle.format("context.search-function.info-instance", cl.getName()));
             createButtonsFromClass(toSearch, starts, cl, availableKeys);
             return true;
         }
 
-        if (obj instanceof rhino.NativeJavaMethod nObj) {
+        if (obj instanceof NativeJavaMethod nObj) {
 
             String methodName = toSearch.substring(toSearch.lastIndexOf(".") + 1);
             try {
@@ -175,9 +241,9 @@ public class SearchFunction {
                 String clString = toSearch.substring(0, toSearch.lastIndexOf("."));
                 Class<?> cl;
                 Object retObj = execute(clString);
-                if (retObj instanceof rhino.NativeJavaClass njc) {
+                if (retObj instanceof NativeJavaClass njc) {
                     cl = (Class<?>) njc.unwrap();
-                } else if (retObj instanceof rhino.NativeJavaObject njo) {
+                } else if (retObj instanceof NativeJavaObject njo) {
                     cl = njo.unwrap().getClass();
                 } else {
                     throw new ClassNotFoundException();
@@ -199,7 +265,8 @@ public class SearchFunction {
                     for (int i = 0; i < params.size(); i++) {
                         Parameter param = params.get(i);
                         Class<?> type = types.get(i);
-                        if (param.isNamePresent()) args.append(param.getName()).append(": ").append(type.getSimpleName());
+                        if (param.isNamePresent())
+                            args.append(param.getName()).append(": ").append(type.getSimpleName());
                         else args.append(type.getSimpleName());
                         if (i < params.size() - 1) args.append(", ");
                     }
@@ -238,9 +305,10 @@ public class SearchFunction {
             return true;
         }
 
-        if (obj instanceof rhino.NativeObject) {
+        if (obj instanceof NativeObject) {
             // ! To change
             infoContent.add("@context.search-function.info-object");
+            int id = 0;
             for (String key : availableKeys) {
                 ButtonInfo btn = new ButtonInfo(key);
                 btn.setPath(toSearch + "." + key);
@@ -253,9 +321,9 @@ public class SearchFunction {
             return true;
         }
 
-        if (obj instanceof java.lang.String || obj instanceof java.lang.Number || obj instanceof java.lang.Boolean) {
+        if (obj instanceof String || obj instanceof Number || obj instanceof Boolean) {
             String value;
-            if (obj instanceof java.lang.String str) {
+            if (obj instanceof String str) {
                 str = str.replaceAll("[\n\t]", " ");
                 if (str.length() > 20) str = str.substring(0, 17) + "...";
                 value = "Value: " + str;
@@ -279,6 +347,7 @@ public class SearchFunction {
         Set<String> knownStrings = new HashSet<>();
         ArrayList<ButtonInfo> buttonsToAdd = new ArrayList<>();
         Method[] allMethods = cl.getMethods();
+        int id = 0;
         for (Method method : allMethods) {
             knownStrings.add(method.getName());
             boolean isAvailable = availableKeys.contains(method.getName());
@@ -341,12 +410,14 @@ public class SearchFunction {
         public final String text;
         private String path = null;
         private ButtonInfoType type = ButtonInfoType.UNKNOWN;
+        private int id = -1;
+        private static int actualId = 0;
 
-    /**
-     * Creates a button to results
-     * @param text Label text
-     */
-    public ButtonInfo(String text) {
+        /**
+         * Creates a button to results
+         * @param text Label text
+         */
+        public ButtonInfo(String text) {
             this.text = text;
         }
 
@@ -361,6 +432,16 @@ public class SearchFunction {
                 return;
             }
             Button btn = (Button) new Button(Styles.cleart).left();
+            id = actualId++;
+            btn.update(() -> {
+                if (btn.isOver()) selectedLine = id;
+                if (id != -1 && selectedLine == id) {
+                    btn.setStyle(Styles.grayt);
+                    selectedButton = btn;
+                } else {
+                    btn.setStyle(Styles.cleart);
+                }
+            });
             btn.add(new Label(labelText));
             btn.clicked(onClick);
             resultsShow.add(btn).growX();
@@ -381,6 +462,10 @@ public class SearchFunction {
 
         public void setType(ButtonInfoType type) {
             this.type = type;
+        }
+
+        public static void resetActualId() {
+            actualId = 0;
         }
     }
 

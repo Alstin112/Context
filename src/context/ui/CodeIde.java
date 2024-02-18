@@ -45,7 +45,6 @@ public class CodeIde {
         dialog = new BaseDialog("@editmessage");
         dialog.setFillParent(true);
         dialog.cont.row();
-        dialog.closeOnBack();
 
         tabArea = new Table() {
             @Override
