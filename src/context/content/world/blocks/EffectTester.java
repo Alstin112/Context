@@ -2,19 +2,11 @@ package context.content.world.blocks;
 
 import arc.files.Fi;
 import arc.graphics.Color;
-import arc.graphics.g2d.Draw;
-import arc.graphics.g2d.Fill;
-import arc.graphics.g2d.Font;
-import arc.graphics.g2d.GlyphLayout;
 import arc.scene.ui.TextField;
-import arc.scene.ui.layout.Scl;
 import arc.scene.ui.layout.Table;
-import arc.util.Align;
 import arc.util.Log;
 import arc.util.io.Reads;
 import arc.util.io.Writes;
-import arc.util.pooling.Pools;
-import context.content.TestersModes;
 import context.ui.CodeIde;
 import context.ui.dialogs.FileSyncTypeDialog;
 import context.ui.elements.CodingTabArea;
@@ -22,14 +14,10 @@ import mindustry.Vars;
 import mindustry.entities.Effect;
 import mindustry.gen.Icon;
 import mindustry.mod.Scripts;
-import mindustry.ui.Fonts;
 import mindustry.ui.Styles;
 import mindustry.ui.dialogs.BaseDialog;
 
 import java.util.Objects;
-
-import static mindustry.Vars.renderer;
-import static mindustry.Vars.tilesize;
 
 public class EffectTester extends CodableTester {
     public EffectTester(String name) {
@@ -40,10 +28,8 @@ public class EffectTester extends CodableTester {
 
     public class EffectTesterBuild extends CodableTesterBuild {
         private String code = "";
-        public Effect effect = new Effect(20, e -> {
+        public final Effect effect = new Effect(20, e -> {
         });
-        private String errorMessage = "";
-        private boolean compileError = false;
         private Fi synchronizedFile = null;
 
         @Override
@@ -136,8 +122,9 @@ public class EffectTester extends CodableTester {
             table.button(Icon.play, Styles.cleari, () -> {
                 try {
                     effect.at(this.x, this.y);
-                } catch (NumberFormatException e) {
-                    setErrorMessage(e.getMessage());
+                    setError();
+                } catch (Exception e) {
+                    setError(e.getMessage(), false);
                 }
 
             }).size(40f);
@@ -149,38 +136,8 @@ public class EffectTester extends CodableTester {
         }
 
         @Override
-        public void drawSelect() {
-            if (renderer.pixelator.enabled()) return;
-            if (getErrorMessage().isEmpty()) return;
-
-            Font font = Fonts.outline;
-            GlyphLayout l = Pools.obtain(GlyphLayout.class, GlyphLayout::new);
-            boolean usesIntegerPositions = font.usesIntegerPositions();
-            font.getData().setScale(1 / 4f / Scl.scl(1f));
-            font.setUseIntegerPositions(false);
-
-            l.setText(font, getErrorMessage(), Color.scarlet, 90f, Align.left, true);
-            float offset = 1f;
-
-            Draw.color(0f, 0f, 0f, 0.2f);
-            Fill.rect(x, y - tilesize / 2f - l.height / 2f - offset, l.width + offset * 2f, l.height + offset * 2f);
-            Draw.color();
-            font.setColor(Color.scarlet);
-            font.draw(getErrorMessage(), x - l.width / 2f, y - tilesize / 2f - offset, 90f, Align.left, true);
-            font.setUseIntegerPositions(usesIntegerPositions);
-
-            font.getData().setScale(1f);
-
-            Pools.free(l);
-        }
-
-        @Override
-        public void updateMode() {
-            if (getCode().isEmpty()) mode = TestersModes.EMPTY;
-            else if (!getErrorMessage().isEmpty()) {
-                if (compileError) mode = TestersModes.COMPILER_ERROR;
-                else mode = TestersModes.RUNTIME_ERROR;
-            } else mode = TestersModes.ACTIVE;
+        public boolean isEmpty() {
+            return code.isEmpty();
         }
 
         public void updateRunFn(String value) {
@@ -191,11 +148,9 @@ public class EffectTester extends CodableTester {
                 String codeStr = "Effect.get(" + effect.id + ").renderer=function(e){try{" + value + "\nVars.world.build(" + tile.x + "," + tile.y + ").errorMessage=\"\"}catch(e){Vars.world.build(" + tile.x + "," + tile.y + ").errorMessage=e}}";
                 scripts.context.evaluateString(scripts.scope, codeStr, "EffectTester", 1);
 
-                setErrorMessage("");
-                compileError = false;
-            } catch (RuntimeException e) {
-                setErrorMessage(e.getMessage());
-                compileError = true;
+                setError();
+            } catch (Exception e) {
+                setError(e.getMessage(),true);
             }
             updateMode();
         }
@@ -206,30 +161,22 @@ public class EffectTester extends CodableTester {
             this.code = code;
             updateRunFn(code);
         }
+        public String getCode() {
+            return code;
+        }
 
         @Override
         public void write(Writes write) {
             super.write(write);
             write.str(getCode());
         }
-
         @Override
         public void read(Reads read, byte revision) {
             super.read(read, revision);
             setCode(read.str());
         }
 
-        public String getCode() {
-            return code;
-        }
 
-        public String getErrorMessage() {
-            return errorMessage;
-        }
-
-        public void setErrorMessage(String errorMessage) {
-            this.errorMessage = errorMessage;
-        }
     }
 
 }

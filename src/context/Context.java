@@ -6,7 +6,6 @@ import mindustry.mod.Mod;
 
 @SuppressWarnings("unused")
 public class Context extends Mod {
-
     @Override
     public void loadContent() {
         new DrawTester("draw-tester");

@@ -1,33 +1,20 @@
 package context.content.world.blocks;
 
 import arc.files.Fi;
-import arc.graphics.Color;
-import arc.graphics.g2d.Draw;
-import arc.graphics.g2d.Fill;
-import arc.graphics.g2d.Font;
-import arc.graphics.g2d.GlyphLayout;
 import arc.scene.ui.TextButton;
-import arc.scene.ui.layout.Scl;
 import arc.scene.ui.layout.Table;
-import arc.util.Align;
 import arc.util.io.Reads;
 import arc.util.io.Writes;
-import arc.util.pooling.Pools;
-import context.content.TestersModes;
 import context.ui.CodeIde;
 import context.ui.dialogs.FileSyncTypeDialog;
 import context.ui.elements.CodingTabArea;
 import mindustry.Vars;
 import mindustry.gen.Icon;
 import mindustry.mod.Scripts;
-import mindustry.ui.Fonts;
 import mindustry.ui.Styles;
 import rhino.Script;
 
 import java.util.Objects;
-
-import static mindustry.Vars.renderer;
-import static mindustry.Vars.tilesize;
 
 public class JsTester extends CodableTester {
     public JsTester(String name) {
@@ -41,8 +28,6 @@ public class JsTester extends CodableTester {
         private String code = "";
         private Runnable runFn = () -> {
         };
-        private String errorMessage = "";
-        private boolean compileError = false;
         private Fi synchronizedFile = null;
 
         @Override
@@ -104,44 +89,15 @@ public class JsTester extends CodableTester {
         public void run() {
             try {
                 this.runFn.run();
+                setError();
             } catch (Exception e) {
-                errorMessage = e.getMessage();
+                setError(e.getMessage(), false);
             }
         }
 
         @Override
-        public void drawSelect() {
-            if (renderer.pixelator.enabled()) return;
-            if (errorMessage.isEmpty()) return;
-
-            Font font = Fonts.outline;
-            GlyphLayout l = Pools.obtain(GlyphLayout.class, GlyphLayout::new);
-            boolean ints = font.usesIntegerPositions();
-            font.getData().setScale(1 / 4f / Scl.scl(1f));
-            font.setUseIntegerPositions(false);
-
-            l.setText(font, errorMessage, Color.scarlet, 90f, Align.left, true);
-            float offset = 1f;
-
-            Draw.color(0f, 0f, 0f, 0.2f);
-            Fill.rect(x, y - tilesize / 2f - l.height / 2f - offset, l.width + offset * 2f, l.height + offset * 2f);
-            Draw.color();
-            font.setColor(Color.scarlet);
-            font.draw(errorMessage, x - l.width / 2f, y - tilesize / 2f - offset, 90f, Align.left, true);
-            font.setUseIntegerPositions(ints);
-
-            font.getData().setScale(1f);
-
-            Pools.free(l);
-        }
-
-        @Override
-        public void updateMode() {
-            if (code.isEmpty()) mode = TestersModes.EMPTY;
-            else if (!errorMessage.isEmpty()) {
-                if (compileError) mode = TestersModes.COMPILER_ERROR;
-                else mode = TestersModes.RUNTIME_ERROR;
-            } else mode = TestersModes.ACTIVE;
+        public boolean isEmpty() {
+            return code.isEmpty();
         }
 
         public void updateRunFn(String value) {
@@ -157,11 +113,9 @@ public class JsTester extends CodableTester {
                 };
                 else runFn = () -> script.exec(scripts.context, scripts.scope);
 
-                errorMessage = "";
-                compileError = false;
+                setError();
             } catch (Exception e) {
-                errorMessage = e.getMessage();
-                compileError = true;
+                setError(e.getMessage(), true);
             }
         }
 
