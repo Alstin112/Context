@@ -1,9 +1,6 @@
 package context;
 
-import context.content.world.blocks.DrawTester;
-import context.content.world.blocks.EffectTester;
-import context.content.world.blocks.IconDictionary;
-import context.content.world.blocks.JsTester;
+import context.content.world.blocks.*;
 import context.ui.dialogs.ReloadContents;
 import mindustry.mod.Mod;
 
@@ -16,6 +13,7 @@ public class Context extends Mod {
         new JsTester("js-tester");
         new EffectTester("effect-tester");
         new IconDictionary("icon-dictionary");
+        new FunctionAnalyser("function-analyser");
     }
 
     public void reloadContents() {
