@@ -44,10 +44,6 @@ public abstract class CodableTester extends BaseContextBlock {
          */
         protected long lastFileModified = 0;
 
-        /**
-         * Control the build to permit only one sync per build
-         */
-        protected long lastSyncTime = 0;
 
         /**
          * Control the
