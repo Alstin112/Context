@@ -16,6 +16,7 @@ import arc.util.io.Writes;
 import arc.util.pooling.Pools;
 import context.content.TestersModes;
 import context.ui.CodeIde;
+import context.ui.dialogs.FileSyncTypeDialog;
 import context.ui.elements.CodingTabArea;
 import mindustry.Vars;
 import mindustry.entities.Effect;
@@ -24,6 +25,8 @@ import mindustry.mod.Scripts;
 import mindustry.ui.Fonts;
 import mindustry.ui.Styles;
 import mindustry.ui.dialogs.BaseDialog;
+
+import java.util.Objects;
 
 import static mindustry.Vars.renderer;
 import static mindustry.Vars.tilesize;
@@ -52,14 +55,34 @@ public class EffectTester extends CodableTester {
                 ide.maxByteOutput = 65523; // (65535 = Max bytes size) - (11 = build properties) - (1 = build version)
                 tab.setCode(getCode());
 
-                if (synchronizedFile != null) tab.setSync(synchronizedFile, true);
-
                 ide.setOnSave(codeIde -> {
-                    codeIde.close();
                     this.configure(tab.getCode());
+                    if(synchronizedFile != null) lastFileModified = synchronizedFile.lastModified();
+                    lastEditByPlayer = true;
                 });
                 tab.setOnSynchronize(file -> this.synchronizedFile = file);
                 ide.hideTabs(true);
+
+
+                if (synchronizedFile == null) {
+                    ide.show();
+                    deselect();
+                    return;
+                }
+
+                final boolean FileChanged = synchronizedFile.lastModified() != lastFileModified;
+                final boolean CodeChanged = !lastEditByPlayer;
+
+                if(FileChanged && CodeChanged) {
+                    new FileSyncTypeDialog(false, true, type -> {
+                        if(type == FileSyncTypeDialog.SyncType.CANCEL) return;
+                        tab.setSync(synchronizedFile, type == FileSyncTypeDialog.SyncType.UPLOAD);
+                        ide.show();
+                        deselect();
+                    });
+                    return;
+                }
+                tab.setSync(synchronizedFile, CodeChanged);
                 ide.show();
                 deselect();
             }).size(40f);
@@ -178,6 +201,8 @@ public class EffectTester extends CodableTester {
         }
 
         private void setCode(String code) {
+            if(!Objects.equals(code, this.code)) lastEditByPlayer = false;
+
             this.code = code;
             updateRunFn(code);
         }

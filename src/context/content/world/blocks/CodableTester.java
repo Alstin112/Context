@@ -8,7 +8,6 @@ import arc.util.Time;
 import context.content.TestersModes;
 
 public abstract class CodableTester extends BaseContextBlock {
-
     public TextureRegion topRegion;
     protected CodableTester(String name) {
         super(name);
@@ -27,6 +26,25 @@ public abstract class CodableTester extends BaseContextBlock {
     }
 
     public class CodableTesterBuild extends BaseContextBuild {
+
+        /**
+         * Controls if the building will replace the player's file
+         */
+        protected boolean lastEditByPlayer = false;
+
+        /**
+         * Controls if the player's file will replace the building
+         */
+        protected long lastFileModified = 0;
+
+        /**
+         * Control the build to permit only one sync per build
+         */
+        protected long lastSyncTime = 0;
+
+        /**
+         * Control the
+         */
         public TestersModes mode = TestersModes.EMPTY;
 
         public ObjectMap<String, Object> storage = new ObjectMap<>();

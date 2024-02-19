@@ -15,6 +15,7 @@ import arc.util.Align;
 import arc.util.Timer;
 import context.ui.ColoredTextArea;
 import context.ui.TabArea;
+import context.ui.dialogs.FileSyncTypeDialog;
 import context.ui.dialogs.SearchFunction;
 import mindustry.Vars;
 import mindustry.gen.Icon;
@@ -97,11 +98,6 @@ public class CodingTabArea extends TabArea {
         super.generateBase(table);
         table.add(lineLabel).left().top().padRight(5);
         table.add(behindTable).grow();
-    }
-
-    @Override
-    public Table addButtons(Table table) {
-
         buttonSync = new TextButton("@context.sync");
         buttonSync.clicked(() -> {
             if (synchronizedFile != null) {
@@ -114,25 +110,28 @@ public class CodingTabArea extends TabArea {
                     this.setSync(fi, false);
                 }
                 CodingTabArea cta = this;
-                this.syncTypeAsk(true, new ExpImpListener() {
-                    @Override
-                    public void upload() {
-                        cta.setSync(fi, true);
-                    }
-
-                    @Override
-                    public void download() {
-                        cta.setSync(fi, false);
-                    }
-
-                    @Override
-                    public void delete() {
-                        cta.setCode("");
-                        cta.setSync(fi, true);
+                new FileSyncTypeDialog(true,true, (type) -> {
+                    switch (type) {
+                        case DELETE -> {
+                            cta.setCode("");
+                            cta.setSync(fi, true);
+                        }
+                        case DOWNLOAD -> {
+                            cta.setSync(fi, false);
+                        }
+                        case UPLOAD -> {
+                            cta.setSync(fi, true);
+                        }
+                        case CANCEL -> {}
                     }
                 });
             });
         });
+    }
+
+    @Override
+    public Table addButtons(Table table) {
+
         Button searchTerm = new TextButton("@context.search-function.button-name");
         searchTerm.clicked(this::showSearch);
         table.add(buttonSync).size(120f, 60f).padRight(4f);
@@ -200,31 +199,6 @@ public class CodingTabArea extends TabArea {
         }, 1, 1);
     }
 
-    public void syncTypeAsk(boolean resetOption, ExpImpListener cb) {
-        BaseDialog d = new BaseDialog("@choose");
-        d.cont.label(() -> "@context.code-ide.difference");
-        d.closeOnBack();
-        if (resetOption) {
-            d.buttons.button("@context.delete", Icon.trash, () -> {
-                cb.delete();
-                d.hide();
-            }).size(230f, 60f);
-        }
-        d.buttons.button("@context.upload", Icon.upload, () -> {
-            cb.upload();
-            d.hide();
-        }).size(230f, 60f);
-        d.buttons.button("@context.download", Icon.download, () -> {
-            cb.download();
-            d.hide();
-        }).size(230f, 60f);
-        d.buttons.button("@context.cancel", Icon.none, () -> {
-            cb.cancel();
-            d.hide();
-        }).size(230f, 60f);
-        d.show();
-    }
-
     public void readFromFile(boolean replaceFile) {
         if (synchronizedFile == null) return;
         lastFileTime = synchronizedFile.lastModified();
@@ -256,12 +230,4 @@ public class CodingTabArea extends TabArea {
     public void setOnSynchronize(Cons<Fi> onSynchronize) {
         this.onSynchronize = onSynchronize;
     }
-
-    public abstract static class ExpImpListener {
-        public void upload() {}
-        public void download() {}
-        public void cancel() {}
-        public void delete() {}
-    }
-
 }

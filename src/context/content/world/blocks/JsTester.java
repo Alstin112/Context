@@ -15,6 +15,7 @@ import arc.util.io.Writes;
 import arc.util.pooling.Pools;
 import context.content.TestersModes;
 import context.ui.CodeIde;
+import context.ui.dialogs.FileSyncTypeDialog;
 import context.ui.elements.CodingTabArea;
 import mindustry.Vars;
 import mindustry.gen.Icon;
@@ -22,6 +23,8 @@ import mindustry.mod.Scripts;
 import mindustry.ui.Fonts;
 import mindustry.ui.Styles;
 import rhino.Script;
+
+import java.util.Objects;
 
 import static mindustry.Vars.renderer;
 import static mindustry.Vars.tilesize;
@@ -65,11 +68,32 @@ public class JsTester extends CodableTester {
                     if (ide.trySave()) this.run();
                 });
 
-                if (synchronizedFile != null) tab.setSync(synchronizedFile, true);
-
-                ide.setOnSave(codeIde -> this.configure(tab.getCode()));
+                ide.setOnSave(codeIde -> {
+                    this.configure(tab.getCode());
+                    if(synchronizedFile != null) lastFileModified = synchronizedFile.lastModified();
+                    lastEditByPlayer = true;
+                });
                 tab.setOnSynchronize(file -> this.synchronizedFile = file);
 
+                if (synchronizedFile == null) {
+                    ide.show();
+                    deselect();
+                    return;
+                }
+
+                final boolean FileChanged = synchronizedFile.lastModified() != lastFileModified;
+                final boolean CodeChanged = !lastEditByPlayer;
+
+                if(FileChanged && CodeChanged) {
+                    new FileSyncTypeDialog(false, true, type -> {
+                        if(type == FileSyncTypeDialog.SyncType.CANCEL) return;
+                        tab.setSync(synchronizedFile, type == FileSyncTypeDialog.SyncType.UPLOAD);
+                        ide.show();
+                        deselect();
+                    });
+                    return;
+                }
+                tab.setSync(synchronizedFile, CodeChanged);
                 ide.show();
                 deselect();
             }).size(40f);
@@ -125,7 +149,7 @@ public class JsTester extends CodableTester {
 
             Scripts scripts = Vars.mods.getScripts();
             try {
-                String textCode = "(function(){" + value + " \n}).apply(Vars.world.build(" + this.tile.x+","+this.tile.y+"))";
+                String textCode = "(function(){" + value + " \n}).apply(Vars.world.build(" + this.tile.x + "," + this.tile.y + "))";
 
                 Script script = scripts.context.compileString(textCode, "JsTester", 1);
 
@@ -146,7 +170,9 @@ public class JsTester extends CodableTester {
             return code;
         }
 
-        private void setCode(String code) {
+        public void setCode(String code) {
+            if (!Objects.equals(code, this.code)) lastEditByPlayer = false;
+
             this.code = code;
             updateRunFn(code);
         }

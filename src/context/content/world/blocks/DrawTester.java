@@ -15,6 +15,7 @@ import arc.util.io.Writes;
 import arc.util.pooling.Pools;
 import context.content.TestersModes;
 import context.ui.CodeIde;
+import context.ui.dialogs.FileSyncTypeDialog;
 import context.ui.elements.CodingTabArea;
 import mindustry.Vars;
 import mindustry.gen.Icon;
@@ -22,6 +23,8 @@ import mindustry.mod.Scripts;
 import mindustry.ui.Fonts;
 import mindustry.ui.Styles;
 import rhino.Script;
+
+import java.util.Objects;
 
 import static mindustry.Vars.*;
 
@@ -39,7 +42,7 @@ public class DrawTester extends CodableTester {
 
     public class DrawTesterBuild extends CodableTesterBuild {
 
-        public String code = "";
+        private String code = "";
         public boolean active = true;
 
         public Runnable drawFn = () -> {
@@ -57,13 +60,32 @@ public class DrawTester extends CodableTester {
                 ide.addTab(tab);
                 ide.maxByteOutput = 65522; // (65535 = Max bytes size) - (12 = build properties) - (1 = build version)
                 tab.setCode(code);
-                if (synchronizedFile != null) tab.setSync(synchronizedFile, true);
                 ide.setOnSave(codeIde -> {
-                    codeIde.close();
                     this.configure(tab.getCode());
+                    if(synchronizedFile != null) lastFileModified = synchronizedFile.lastModified();
+                    lastEditByPlayer = true;
                 });
-                tab.setOnSynchronize((file) -> this.synchronizedFile = file);
-                ide.hideTabs(true);
+                tab.setOnSynchronize(file -> this.synchronizedFile = file);
+
+                if (synchronizedFile == null) {
+                    ide.show();
+                    deselect();
+                    return;
+                }
+
+                final boolean FileChanged = synchronizedFile.lastModified() != lastFileModified;
+                final boolean CodeChanged = !lastEditByPlayer;
+
+                if(FileChanged && CodeChanged) {
+                    new FileSyncTypeDialog(false, true, type -> {
+                        if(type == FileSyncTypeDialog.SyncType.CANCEL) return;
+                        tab.setSync(synchronizedFile, type == FileSyncTypeDialog.SyncType.UPLOAD);
+                        ide.show();
+                        deselect();
+                    });
+                    return;
+                }
+                tab.setSync(synchronizedFile, CodeChanged);
                 ide.show();
                 deselect();
             }).size(40f);
@@ -159,9 +181,15 @@ public class DrawTester extends CodableTester {
             }
         }
 
-        private void setCode(String code) {
+        public void setCode(String code) {
+            if(!Objects.equals(code, this.code)) lastEditByPlayer = false;
+
             this.code = code;
             updateDrawFn(code);
+        }
+
+        public String getCode(){
+            return code;
         }
 
         @Override
