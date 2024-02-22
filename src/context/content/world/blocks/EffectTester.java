@@ -44,7 +44,7 @@ public class EffectTester extends CodableTester {
                 CodeIde ide = new CodeIde();
                 CodingTabArea tab = new CodingTabArea();
                 ide.addTab(tab);
-                ide.maxByteOutput = 65523; // (65535 = Max bytes size) - (11 = build properties) - (1 = build version)
+                ide.maxByteOutput = 65515; // (65535 = Max bytes size) - (19 = build properties) - (1 = build version)
                 tab.setCode(getCode());
                 tab.setObjThis(this);
                 //tab.addVariable("e", effect.);
