@@ -16,6 +16,7 @@ import mindustry.gen.Icon;
 import mindustry.mod.Scripts;
 import mindustry.ui.Styles;
 import mindustry.ui.dialogs.BaseDialog;
+import rhino.Function;
 
 import java.util.Objects;
 
@@ -24,6 +25,11 @@ public class EffectTester extends CodableTester {
         super(name);
 
         config(String.class, EffectTesterBuild::setCode);
+        config(Object[].class, (EffectTesterBuild b, Object[] config) -> {
+            b.effect.lifetime = (float) config[0];
+            b.effect.clip = (float) config[1];
+            b.setCode((String) config[2]);
+        });
     }
 
     public class EffectTesterBuild extends CodableTesterBuild {
@@ -40,6 +46,8 @@ public class EffectTester extends CodableTester {
                 ide.addTab(tab);
                 ide.maxByteOutput = 65523; // (65535 = Max bytes size) - (11 = build properties) - (1 = build version)
                 tab.setCode(getCode());
+                tab.setObjThis(this);
+                //tab.addVariable("e", effect.);
 
                 ide.setOnSave(codeIde -> {
                     this.configure(tab.getCode());
@@ -131,8 +139,9 @@ public class EffectTester extends CodableTester {
         }
 
         @Override
-        public String config() {
-            return getCode();
+        public Object config() {
+            if(effect.lifetime == 20f && effect.clip == 50f) return code;
+            return new Object[]{effect.lifetime,effect.clip,code};
         }
 
         @Override
@@ -145,14 +154,22 @@ public class EffectTester extends CodableTester {
 
             Scripts scripts = Vars.mods.getScripts();
             try {
-                String codeStr = "Effect.get(" + effect.id + ").renderer=function(e){try{" + value + "\nVars.world.build(" + tile.x + "," + tile.y + ").errorMessage=\"\"}catch(e){Vars.world.build(" + tile.x + "," + tile.y + ").errorMessage=e}}";
+                String codeStr = "function(e){" + value + "\n}";
+                Function fn = scripts.context.compileFunction(scripts.scope, codeStr, "EffectTester", 1);
+                effect.renderer = e -> {
+                    try {
+                        fn.call(scripts.context,scripts.scope, rhino.Context.toObject(this, scripts.scope), new Object[]{e, this});
+                        setError();
+                    } catch (Exception e1) {
+                        setError(e1.getMessage(), false);
+                    }
+                };
                 scripts.context.evaluateString(scripts.scope, codeStr, "EffectTester", 1);
 
                 setError();
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 setError(e.getMessage(),true);
             }
-            updateMode();
         }
 
         private void setCode(String code) {
@@ -168,11 +185,15 @@ public class EffectTester extends CodableTester {
         @Override
         public void write(Writes write) {
             super.write(write);
+            write.f(effect.lifetime);
+            write.f(effect.clip);
             write.str(getCode());
         }
         @Override
         public void read(Reads read, byte revision) {
             super.read(read, revision);
+            effect.lifetime = read.f();
+            effect.clip = read.f();
             setCode(read.str());
         }
 

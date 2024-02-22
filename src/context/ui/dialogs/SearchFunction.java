@@ -3,7 +3,6 @@ package context.ui.dialogs;
 import arc.Core;
 import arc.func.Cons;
 import arc.input.KeyCode;
-import arc.math.Mathf;
 import arc.scene.Scene;
 import arc.scene.event.InputEvent;
 import arc.scene.event.InputListener;
@@ -12,7 +11,6 @@ import arc.scene.ui.CheckBox;
 import arc.scene.ui.Label;
 import arc.scene.ui.TextField;
 import arc.scene.ui.layout.Table;
-import arc.util.Log;
 import mindustry.Vars;
 import mindustry.gen.Icon;
 import mindustry.gen.Tex;
@@ -32,7 +30,7 @@ public class SearchFunction {
     private static final BaseDialog bd = new BaseDialog("@context.search-function.title") {
         @Override
         public void hide() {
-            onUpload = null;
+            onClose();
             super.hide();
         }
     };
@@ -96,7 +94,11 @@ public class SearchFunction {
     private static final CheckBox checkMethods = new CheckBox(ButtonInfoType.METHOD.v + Core.bundle.get("context.search-function.methods"));
     private static final CheckBox checkFields = new CheckBox(ButtonInfoType.FIELD.v + Core.bundle.get("context.search-function.fields"));
 
+    private static Scriptable objThis = null;
+
     private static Button selectedButton = null;
+
+    private static final Map<String, Object> arguments = new HashMap<>();
 
     static {
         bd.cont.setBackground(Tex.button);
@@ -159,9 +161,6 @@ public class SearchFunction {
     private static Cons<String> onUpload = null;
     private static int selectedLine = -1;
 
-    public static String getText() {
-        return searchField.getText();
-    }
 
     public static void setText(String text) {
         searchField.setText(text);
@@ -176,7 +175,6 @@ public class SearchFunction {
         bd.show();
         searchField.getScene().setKeyboardFocus(searchField);
         SearchFunction.onUpload = onUpload;
-        Log.info("texto: '@'",searchField.getText());
         search();
     }
 
@@ -308,7 +306,6 @@ public class SearchFunction {
         if (obj instanceof NativeObject) {
             // ! To change
             infoContent.add("@context.search-function.info-object");
-            int id = 0;
             for (String key : availableKeys) {
                 ButtonInfo btn = new ButtonInfo(key);
                 btn.setPath(toSearch + "." + key);
@@ -340,14 +337,20 @@ public class SearchFunction {
 
     private static Object execute(String code) {
         Scripts s = Vars.mods.getScripts();
-        return s.context.evaluateString(s.scope, code, "SearchTerms", 1);
+        StringBuilder args = new StringBuilder();
+        List<Object> objValues = new ArrayList<>(arguments.values());
+        for (Map.Entry<String, Object> entry : arguments.entrySet()) {
+            args.append(entry.getKey()).append(",");
+            objValues.add(entry.getValue());
+        }
+        Function fn = s.context.compileFunction(s.scope, "function("+args.toString()+"){return "+code+"}", "SearchTerms", 1);
+        return fn.call(s.context, s.scope, objThis == null? s.scope : objThis, objValues.toArray());
     }
 
     private static void createButtonsFromClass(String toSearch, String starts, Class<?> cl, List<String> availableKeys) {
         Set<String> knownStrings = new HashSet<>();
         ArrayList<ButtonInfo> buttonsToAdd = new ArrayList<>();
         Method[] allMethods = cl.getMethods();
-        int id = 0;
         for (Method method : allMethods) {
             knownStrings.add(method.getName());
             boolean isAvailable = availableKeys.contains(method.getName());
@@ -406,11 +409,29 @@ public class SearchFunction {
         SearchFunction.onUpload = onUpload;
     }
 
+    public static void setObjThis(Object objThis) {
+        SearchFunction.objThis = rhino.Context.toObject(objThis, Vars.mods.getScripts().scope);
+    }
+
+    public static void addVariable(String name, Object obj) {
+        arguments.put(name, obj);
+    }
+    public static void addVariable(Map<String, Object> variableMap) {
+        for (Map.Entry<String, Object> entry : variableMap.entrySet()) {
+            arguments.put(entry.getKey(), entry.getValue());
+        }
+    }
+
+    private static void onClose() {
+        onUpload = null;
+        objThis = null;
+        arguments.clear();
+    }
+
     private static class ButtonInfo {
         public final String text;
         private String path = null;
         private ButtonInfoType type = ButtonInfoType.UNKNOWN;
-        private int id = -1;
         private static int actualId = 0;
 
         /**
@@ -432,7 +453,7 @@ public class SearchFunction {
                 return;
             }
             Button btn = (Button) new Button(Styles.cleart).left();
-            id = actualId++;
+            int id = actualId++;
             btn.update(() -> {
                 if (btn.isOver()) selectedLine = id;
                 if (id != -1 && selectedLine == id) {

@@ -172,7 +172,7 @@ public class FunctionAnalyserDialog {
 
     private static Element createTabInformation() {
         Table area = new Table();
-        float delta = 0.00001f;
+        float delta = 0.0001f;
         area.label(() -> {
             Tmp.v1.set(Core.input.mouse());
             Element hit = Core.scene.hit(Tmp.v1.x, Tmp.v1.y, true);

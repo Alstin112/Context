@@ -5,12 +5,16 @@ import arc.graphics.g2d.Font;
 import arc.math.geom.Vec2;
 import arc.scene.ui.Button;
 import arc.scene.ui.ImageButton;
+import arc.scene.ui.ScrollPane;
 import arc.scene.ui.layout.Table;
 import arc.util.Align;
 import mindustry.gen.Icon;
 import mindustry.gen.Iconc;
 import mindustry.ui.Fonts;
 import mindustry.ui.Styles;
+
+import java.util.HashSet;
+import java.util.Scanner;
 
 import static mindustry.Vars.tilesize;
 
@@ -27,14 +31,32 @@ public class IconDictionary extends BaseContextBlock {
         StringBuilder sbChar = new StringBuilder();
         StringBuilder sbImg = new StringBuilder();
         StringBuilder sbMind = new StringBuilder();
+        HashSet<Integer> icons = new HashSet<>();
+
+
+        try(Scanner scan = new Scanner(Core.files.internal("icons/icons.properties").read(512))){
+            while(scan.hasNextLine()){
+                String line = scan.nextLine();
+                String[] split = line.split("=");
+                String character = split[0];
+
+                icons.add(Integer.parseInt(character));
+            }
+        }
+
         for (int i = 0xE000; i <= 0xF8FF; i++) {
             Font.Glyph g = Fonts.def.getData().getGlyph((char) i);
             if (g == null) continue;
+            char c = (char) i;
 
-            if (Iconc.all.indexOf(i) != -1) sbImg.append((char) i);
-            else if (i > 0xF000) sbMind.append((char) i);
-            else sbChar.append((char) i);
+            if (Iconc.all.indexOf(i) != -1 || c == '\uF018' || c == '\uF02D' || c == '\uF0EC' || c == '\uF113')
+                sbImg.append(c);
+            else if (icons.contains(i)) sbMind.append(c);
+            else sbChar.append(c);
         }
+        sbImg.append('\u26A0');
+
+
         iconsChar = sbChar.toString();
         iconsImg = sbImg.toString();
         iconsMind = sbMind.toString();
@@ -63,7 +85,9 @@ public class IconDictionary extends BaseContextBlock {
                 for (int i = 0; i < 3 - (3 + iconsChar.length()) % 4; i++) {
                     optionsTab.add(new Table(Styles.black6)).size(40f);
                 }
-                table.pane(optionsTab).size(180f, 160f);
+                ScrollPane pane = table.pane(optionsTab).size(180f, 160f).get();
+                pane.setScrollingDisabledX(true);
+                pane.setOverscroll(false, false);
                 table.row();
                 table.add(catButtons);
                 cButton.setDisabled(true);
@@ -81,7 +105,9 @@ public class IconDictionary extends BaseContextBlock {
                 for (int i = 0; i < 3 - (3 + iconsMind.length()) % 4; i++) {
                     optionsTab.add(new Table(Styles.black6)).size(40f);
                 }
-                table.pane(optionsTab).size(180f, 160f);
+                ScrollPane pane = table.pane(optionsTab).size(180f, 160f).get();
+                pane.setScrollingDisabledX(true);
+                pane.setOverscroll(false, false);
                 table.row();
                 table.add(catButtons);
                 cButton.setDisabled(false);
@@ -99,7 +125,9 @@ public class IconDictionary extends BaseContextBlock {
                 for (int i = 0; i < 3 - (3 + iconsImg.length()) % 4; i++) {
                     optionsTab.add(new Table(Styles.black6)).size(40f);
                 }
-                table.pane(optionsTab).size(180f, 160f);
+                ScrollPane pane = table.pane(optionsTab).size(180f, 160f).get();
+                pane.setScrollingDisabledX(true);
+                pane.setOverscroll(false, false);
                 table.row();
                 table.add(catButtons);
                 cButton.setDisabled(false);
@@ -124,9 +152,9 @@ public class IconDictionary extends BaseContextBlock {
 
             String code = Iconc.codes.findKey(c);
             if (code != null && Icon.icons.containsKey(code)) {
-                copyCharTab.button(Icon.icons.get(code), Styles.defaulti, () -> Core.app.setClipboardText("Icon."+code)).size(40f);
-                if(Icon.icons.containsKey(code+"Small")) {
-                    copyCharTab.button(Icon.icons.get(code+"Small"), Styles.defaulti, () -> Core.app.setClipboardText("Icon."+code+"Small")).size(40f);
+                copyCharTab.button(Icon.icons.get(code), Styles.defaulti, () -> Core.app.setClipboardText("Icon." + code)).size(40f);
+                if (Icon.icons.containsKey(code + "Small")) {
+                    copyCharTab.button(Icon.icons.get(code + "Small"), Styles.defaulti, () -> Core.app.setClipboardText("Icon." + code + "Small")).size(40f);
                 }
             }
             table.add(copyCharTab).growX();

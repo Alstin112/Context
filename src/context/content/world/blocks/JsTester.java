@@ -12,7 +12,7 @@ import mindustry.Vars;
 import mindustry.gen.Icon;
 import mindustry.mod.Scripts;
 import mindustry.ui.Styles;
-import rhino.Script;
+import rhino.Function;
 
 import java.util.Objects;
 
@@ -42,6 +42,7 @@ public class JsTester extends CodableTester {
                 ide.maxByteOutput = 65523; // (65535 = Max bytes size) - (11 = build properties) - (1 = build version)
 
                 tab.setCode(code);
+                tab.setObjThis(this);
 
                 ide.addButton(new TextButton("@context.hide-and-run")).clicked(() -> {
                     if (ide.trySave()) {
@@ -105,16 +106,11 @@ public class JsTester extends CodableTester {
 
             Scripts scripts = Vars.mods.getScripts();
             try {
-                String textCode = "(function(){" + value + " \n}).apply(Vars.world.build(" + this.tile.x + "," + this.tile.y + "))";
-
-                Script script = scripts.context.compileString(textCode, "JsTester", 1);
-
-                if (script == null) runFn = () -> {
-                };
-                else runFn = () -> script.exec(scripts.context, scripts.scope);
-
+                String textCode = "function(){" + value + " \n}";
+                Function fn = scripts.context.compileFunction(scripts.scope, textCode, "JsTester", 1);
+                runFn = () -> fn.call(scripts.context, scripts.scope, rhino.Context.toObject(this, scripts.scope), new Object[0]);
                 setError();
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 setError(e.getMessage(), true);
             }
         }

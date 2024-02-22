@@ -18,9 +18,10 @@ import context.ui.TabArea;
 import context.ui.dialogs.FileSyncTypeDialog;
 import context.ui.dialogs.SearchFunction;
 import mindustry.Vars;
-import mindustry.gen.Icon;
 import mindustry.ui.Styles;
-import mindustry.ui.dialogs.BaseDialog;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class CodingTabArea extends TabArea {
     private final ColoredTextArea codeArea = new ColoredTextArea("");
@@ -42,6 +43,9 @@ public class CodingTabArea extends TabArea {
     private long lastFileTime = 0;
     private Timer.Task verifyFile = null;
 
+    // region Search Terms
+    private Object objThis = null;
+    private Map<String, Object> customVariables = new HashMap<>();
 
     public CodingTabArea() {
         super();
@@ -110,20 +114,11 @@ public class CodingTabArea extends TabArea {
                     this.setSync(fi, false);
                 }
                 CodingTabArea cta = this;
-                new FileSyncTypeDialog(true,true, (type) -> {
-                    switch (type) {
-                        case DELETE -> {
-                            cta.setCode("");
-                            cta.setSync(fi, true);
-                        }
-                        case DOWNLOAD -> {
-                            cta.setSync(fi, false);
-                        }
-                        case UPLOAD -> {
-                            cta.setSync(fi, true);
-                        }
-                        case CANCEL -> {}
-                    }
+                new FileSyncTypeDialog(true,true, type -> {
+                    if(type == FileSyncTypeDialog.SyncType.CANCEL) return;
+                    if(type == FileSyncTypeDialog.SyncType.DELETE) cta.setCode("");
+
+                    cta.setSync(fi, type != FileSyncTypeDialog.SyncType.DOWNLOAD);
                 });
             });
         });
@@ -140,6 +135,8 @@ public class CodingTabArea extends TabArea {
     }
 
     private void showSearch() {
+        SearchFunction.addVariable(customVariables);
+        SearchFunction.setObjThis(objThis);
         SearchFunction.show(str -> {
             codeArea.getScene().setKeyboardFocus(codeArea);
             String text = codeArea.getText();
@@ -199,6 +196,10 @@ public class CodingTabArea extends TabArea {
         }, 1, 1);
     }
 
+    public void addVariable(String name, Object value) {
+        customVariables.put(name, value);
+    }
+
     public void readFromFile(boolean replaceFile) {
         if (synchronizedFile == null) return;
         lastFileTime = synchronizedFile.lastModified();
@@ -229,5 +230,12 @@ public class CodingTabArea extends TabArea {
 
     public void setOnSynchronize(Cons<Fi> onSynchronize) {
         this.onSynchronize = onSynchronize;
+    }
+
+    public Object getObjThis() {
+        return objThis;
+    }
+    public void setObjThis(Object objThis) {
+        this.objThis = objThis;
     }
 }
