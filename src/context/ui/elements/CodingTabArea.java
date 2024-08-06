@@ -125,13 +125,11 @@ public class CodingTabArea extends TabArea {
     }
 
     @Override
-    public Table addButtons(Table table) {
-
+    public void addButtons(Table table) {
         Button searchTerm = new TextButton("@context.search-function.button-name");
         searchTerm.clicked(this::showSearch);
         table.add(buttonSync).size(120f, 60f).padRight(4f);
         table.add(searchTerm).size(120f, 60f).padRight(4f);
-        return table;
     }
 
     private void showSearch() {
@@ -209,7 +207,7 @@ public class CodingTabArea extends TabArea {
     }
 
     @Override
-    public int TotalExportedBytes() {
+    public int totalExportedBytes() {
         return this.codeArea.getText().length() + 2;
     }
 

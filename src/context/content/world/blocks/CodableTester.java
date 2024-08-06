@@ -11,13 +11,13 @@ import arc.util.pooling.Pools;
 import context.content.TestersModes;
 import mindustry.ui.Fonts;
 
-import static mindustry.Vars.renderer;
 import static mindustry.Vars.tilesize;
 
 public abstract class CodableTester extends BaseContextBlock {
     protected TextureRegion topRegion;
     protected CodableTester(String name) {
         super(name);
+        schematicPriority = 15;
     }
 
     @Override
@@ -42,33 +42,56 @@ public abstract class CodableTester extends BaseContextBlock {
         /**
          * Controls if the player's file will replace the building
          */
-        protected long lastFileModified = 0;
-
-
-        /**
-         * Control the
-         */
+        protected long lastTimeFileModified = 0;
+        /** Control the color of the block (expected to be visual only)*/
         protected TestersModes mode = TestersModes.EMPTY;
+        /** Message to appear when get error */
         private String errorMessage = "";
+        /** Determinate if the build can run while the error is showing */
         protected boolean compileError = false;
-        protected boolean active = true;
+        /** Every function will be added some try-catch */
+        protected boolean safeRunning = false;
+        /** Internal storage of the build (mean to be used ingame) */
         private ObjectMap<String, Object> storage = new ObjectMap<>();
+
 
         public boolean isEmpty() {
             return false;
         }
 
         public void updateMode() {
-            if (!active) mode = TestersModes.INACTIVE;
-            else if (isEmpty()) mode = TestersModes.EMPTY;
+            if (isEmpty()) mode = TestersModes.EMPTY;
             else if (!getError().isEmpty()) {
                 if (compileError) mode = TestersModes.COMPILER_ERROR;
                 else mode = TestersModes.RUNTIME_ERROR;
             } else mode = TestersModes.ACTIVE;
         }
+
+
+        protected void setError() {
+            errorMessage = "";
+            compileError = false;
+        }
+        protected void setError(String message, boolean compileError) {
+            errorMessage = message;
+            this.compileError = compileError;
+        }
+        public String getError() {
+            return errorMessage;
+        }
+
+        public ObjectMap<String, Object> getStorage() {
+            return storage;
+        }
+        public void setStorage(ObjectMap<String, Object> storage) {
+            this.storage = storage;
+        }
+        public TestersModes getMode() {
+            return mode;
+        }
+
         @Override
         public void drawSelect() {
-            if (renderer.pixelator.enabled()) return;
             if (mode != TestersModes.COMPILER_ERROR && mode != TestersModes.RUNTIME_ERROR) return;
             if (errorMessage.isEmpty()) return;
 
@@ -99,30 +122,6 @@ public abstract class CodableTester extends BaseContextBlock {
             Draw.color(mode.getColor(Time.time));
             Draw.rect(topRegion, x, y);
             Draw.reset();
-        }
-
-        public void setError() {
-            errorMessage = "";
-            compileError = false;
-        }
-        public void setError(String message, boolean compileError) {
-            errorMessage = message;
-            this.compileError = compileError;
-        }
-        public String getError() {
-            return errorMessage;
-        }
-
-        public ObjectMap<String, Object> getStorage() {
-            return storage;
-        }
-
-        public void setStorage(ObjectMap<String, Object> storage) {
-            this.storage = storage;
-        }
-
-        public TestersModes getMode() {
-            return mode;
         }
     }
 }

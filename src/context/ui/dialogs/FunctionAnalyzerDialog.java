@@ -22,7 +22,7 @@ import rhino.Function;
 
 import java.lang.reflect.Field;
 
-public class FunctionAnalyserDialog {
+public class FunctionAnalyzerDialog {
 
     private static final BaseDialog bd = new BaseDialog("Function Visualizer");
     private static float[] values = new float[201];
@@ -93,7 +93,7 @@ public class FunctionAnalyserDialog {
             Scripts s = Vars.mods.getScripts();
             try {
                 String codeStr = "function(t){" + text + ";\n}";
-                Function fn = s.context.compileFunction(s.scope, codeStr, "function-analyser", 1);
+                Function fn = s.context.compileFunction(s.scope, codeStr, "function-analyzer", 1);
                 // fn.call( context, scope, scope, Object[])
                 function = v -> ((Number) fn.call(s.context, s.scope, s.scope, new Object[]{v})).floatValue();
                 float[] newValues = new float[values.length];
@@ -139,7 +139,7 @@ public class FunctionAnalyserDialog {
         bd.addCloseButton();
     }
 
-    private FunctionAnalyserDialog() {
+    private FunctionAnalyzerDialog() {
 
     }
 
@@ -187,9 +187,13 @@ public class FunctionAnalyserDialog {
             sb.append("Val: ").append(function.get(Tmp.v1.x)).append("\n");
 
             sb.append("Der.: ");
-            if(Tmp.v1.x < delta) sb.append((function.get(2*delta) - function.get(0)) / (2*delta)).append("\n");
-            else if(Tmp.v1.x > 1 - delta) sb.append((function.get(1) - function.get(1-2*delta)) / (2*delta)).append("\n");
-            else sb.append((function.get(Tmp.v1.x + delta) - function.get(Tmp.v1.x - delta)) / (2*delta)).append("\n");
+            float derivate = 0;
+            if(Tmp.v1.x < delta) derivate = (function.get(2*delta) - function.get(0)) / (2*delta);
+            else if(Tmp.v1.x > 1 - delta) derivate = (function.get(1) - function.get(1-2*delta)) / (2*delta);
+            else derivate = (function.get(Tmp.v1.x + delta) - function.get(Tmp.v1.x - delta)) / (2*delta);
+
+            // append derivate rounded 3 decimal
+            sb.append(Math.round(derivate*1000)/1000f).append("\n");
 
             return sb.toString();
         }).get();

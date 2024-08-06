@@ -7,22 +7,24 @@ public abstract class TabArea {
     public Table parent;
     public Button tabButton;
     protected CodeIde ide;
-    public TabArea() {
+    protected TabArea() {
 
     }
 
     public void generateBase(Table table) {
         parent = table;
-    };
-    public abstract Table addButtons(Table table);
+    }
+
+    public abstract void addButtons(Table table);
     public void removeBase() {
         if (parent != null) parent.reset();
-    };
+    }
+
     public void close() {
 
     }
 
-    public int TotalExportedBytes() {
+    public int totalExportedBytes() {
         return 0;
     }
 

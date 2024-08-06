@@ -1,12 +1,12 @@
 package context.content.world.blocks;
 
 import arc.scene.ui.layout.Table;
-import context.ui.dialogs.FunctionAnalyserDialog;
+import context.ui.dialogs.FunctionAnalyzerDialog;
 import mindustry.gen.Icon;
 import mindustry.ui.Styles;
 
-public class FunctionAnalyser extends BaseContextBlock {
-    public FunctionAnalyser(String name) {
+public class FunctionAnalyzer extends BaseContextBlock {
+    public FunctionAnalyzer(String name) {
         super(name);
     }
 
@@ -14,7 +14,7 @@ public class FunctionAnalyser extends BaseContextBlock {
     public class FunctionAnalyserBuild extends BaseContextBuild {
         @Override
         public void buildConfiguration(Table table) {
-            table.button(Icon.book, Styles.cleari, FunctionAnalyserDialog::show).size(40f);
+            table.button(Icon.book, Styles.cleari, FunctionAnalyzerDialog::show).size(40f);
         }
     }
 }

@@ -5,8 +5,10 @@ import arc.scene.ui.ImageButton;
 import arc.scene.ui.layout.Table;
 import arc.util.io.Reads;
 import arc.util.io.Writes;
+import context.Utils;
 import context.content.TestersModes;
 import context.ui.CodeIde;
+import context.ui.dialogs.ConfigurationDialog;
 import context.ui.dialogs.FileSyncTypeDialog;
 import context.ui.elements.CodingTabArea;
 import mindustry.Vars;
@@ -18,24 +20,40 @@ import rhino.Function;
 import java.util.Objects;
 
 public class DrawTester extends CodableTester {
+
     public DrawTester(String name) {
         super(name);
+        hasShadow = false;
 
         config(Object[].class, (DrawTesterBuild b, Object[] config) -> {
-            b.active = (boolean) config[0];
-            b.setCode((String) config[1]);
+            int i = 0;
+
+            if (config[i] instanceof String) b.setCode((String) config[i++]);
+
+            // Getting the configs
+            int v = (int) config[i];
+            b.displaying = (v & 0b00000001) != 0;
+            b.safeRunning = (v & 0b00000010) != 0;
+            b.invisibleWhenDraw = (v & 0b00000100) != 0;
         });
         config(String.class, DrawTesterBuild::setCode);
-        config(Boolean.class, (DrawTesterBuild b, Boolean config) -> b.active = config);
+        config(Boolean.class, (DrawTesterBuild b, Boolean config) -> b.displaying = config);
     }
 
     public class DrawTesterBuild extends CodableTesterBuild {
 
+        /** The code to be executed */
         private String code = "";
-
+        /** The function to be executed to draw*/
         private Runnable drawFn = () -> {
         };
+
+        /** Self-explanatory */
+        private boolean invisibleWhenDraw = false;
+        /** desktop file to be synchronized with the build */
         private Fi synchronizedFile = null;
+        /** Should this block be able to run */
+        private boolean displaying = true;
 
         @Override
         public void buildConfiguration(Table table) {
@@ -50,7 +68,7 @@ public class DrawTester extends CodableTester {
 
                 ide.setOnSave(codeIde -> {
                     this.configure(tab.getCode());
-                    if(synchronizedFile != null) lastFileModified = synchronizedFile.lastModified();
+                    if (synchronizedFile != null) lastTimeFileModified = synchronizedFile.lastModified();
                     lastEditByPlayer = true;
                 });
                 tab.setOnSynchronize(file -> this.synchronizedFile = file);
@@ -61,21 +79,36 @@ public class DrawTester extends CodableTester {
                     return;
                 }
 
-                final boolean FileChanged = synchronizedFile.lastModified() != lastFileModified;
-                final boolean CodeChanged = !lastEditByPlayer;
+                final boolean FileChanged = synchronizedFile.lastModified() != lastTimeFileModified;
+                final boolean LocalPlayerChanged = lastEditByPlayer;
 
-                if(FileChanged && CodeChanged) {
+                if (FileChanged && !LocalPlayerChanged) {
                     new FileSyncTypeDialog(false, true, type -> {
-                        if(type == FileSyncTypeDialog.SyncType.CANCEL) return;
+                        if (type == FileSyncTypeDialog.SyncType.CANCEL) return;
                         tab.setSync(synchronizedFile, type == FileSyncTypeDialog.SyncType.UPLOAD);
-                        ide.show();
-                        deselect();
                     });
-                    return;
+                } else {
+                    tab.setSync(synchronizedFile, false);
                 }
-                tab.setSync(synchronizedFile, CodeChanged);
+
                 ide.show();
                 deselect();
+            }).size(40f);
+
+            table.button(Icon.settings, Styles.cleari, () -> {
+                ConfigurationDialog cd = new ConfigurationDialog("@editmessage");
+                cd.addTitle("@context.testers.configuration");
+                cd.addBooleanInput("@context.testers.safe-running", safeRunning);
+                cd.addBooleanInput("@block.context-draw-tester.invisible", invisibleWhenDraw);
+                cd.setOnClose(values -> {
+                    int b = 0;
+                    if (displaying) b |= 0x1;
+                    if ((boolean) values.get("context.testers.safe-running")) b |= 0x2;
+                    if ((boolean) values.get("block.context-draw-tester.invisible")) b |= 0x4;
+
+                    configure(new Object[]{b});
+                });
+                cd.show();
             }).size(40f);
 
             ImageButton btn;
@@ -83,24 +116,23 @@ public class DrawTester extends CodableTester {
             btn.getStyle().imageUp = Icon.eyeSmall;
             btn.getStyle().imageChecked = Icon.eyeOffSmall;
             btn.resizeImage(Icon.eyeSmall.imageSize());
-            btn.setChecked(!active);
-            btn.clicked(() -> configure(!active));
+            btn.setChecked(!displaying);
+            btn.clicked(() -> configure(!displaying));
             table.add(btn).size(40f);
         }
 
         @Override
-        public Object[] config() {
-            return new Object[]{active, code};
-        }
-
-        @Override
         public void draw() {
-            super.draw();
-            if (mode != TestersModes.ACTIVE && mode != TestersModes.RUNTIME_ERROR) return;
+            updateMode();
+            if (mode != TestersModes.ACTIVE && mode != TestersModes.RUNTIME_ERROR) {
+                super.draw();
+                return;
+            }
+            if (!invisibleWhenDraw) super.draw();
 
+            setError();
             try {
                 drawFn.run();
-                setError();
             } catch (Exception e) {
                 setError(e.getMessage(), false);
             }
@@ -112,9 +144,9 @@ public class DrawTester extends CodableTester {
         }
 
         public void updateDrawFn(String value) {
-            if (value.trim().isEmpty()) {
-                return;
-            }
+            if (value.trim().isEmpty()) return;
+
+            if (safeRunning) value = Utils.applySafeRunning(value);
 
             Scripts scripts = Vars.mods.getScripts();
             try {
@@ -129,13 +161,13 @@ public class DrawTester extends CodableTester {
         }
 
         public void setCode(String code) {
-            if(!Objects.equals(code, this.code)) lastEditByPlayer = false;
+            if (!Objects.equals(code, this.code)) lastEditByPlayer = false;
 
             this.code = code;
             updateDrawFn(code);
         }
 
-        public String getCode(){
+        public String getCode() {
             return code;
         }
 
@@ -144,17 +176,39 @@ public class DrawTester extends CodableTester {
         }
 
         @Override
+        public void updateMode() {
+            if (!displaying) mode = TestersModes.INACTIVE;
+            else super.updateMode();
+        }
+
+        @Override
+        public Object[] config() {
+            int v = 0;
+            if (displaying) v |= 0x1;
+            if (safeRunning) v |= 0x2;
+            if (invisibleWhenDraw) v |= 0x4;
+
+            return new Object[]{code, v};
+        }
+        @Override
         public void write(Writes write) {
             super.write(write);
-            write.bool(active);
             write.str(code);
+            int v = 0;
+            if (displaying) v |= 0x1;
+            if (safeRunning) v |= 0x2;
+            if (invisibleWhenDraw) v |= 0x4;
+            write.b(v);
         }
 
         @Override
         public void read(Reads read, byte revision) {
             super.read(read, revision);
-            active = read.bool();
             setCode(read.str());
+            int v = read.b();
+            displaying = (v & 0b00000001) != 0;
+            safeRunning = (v & 0b00000010) != 0;
+            invisibleWhenDraw = (v & 0b00000100) != 0;
         }
     }
 

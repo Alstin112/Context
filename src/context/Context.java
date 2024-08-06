@@ -12,7 +12,7 @@ public class Context extends Mod {
         new JsTester("js-tester");
         new EffectTester("effect-tester");
         new IconDictionary("icon-dictionary");
-        new FunctionAnalyser("function-analyser");
+        new FunctionAnalyzer("function-analyzer");
     }
 
     public void reloadContents() {

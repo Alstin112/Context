@@ -129,7 +129,7 @@ public class CodeIde {
         if(maxByteOutput >= 0) {
             int bytes = 0;
             for (TabArea tab : tabs) {
-                bytes += tab.TotalExportedBytes();
+                bytes += tab.totalExportedBytes();
             }
             if(bytes > maxByteOutput) {
                 showError(Core.bundle.format("context.error.byte-limit", bytes, maxByteOutput));
