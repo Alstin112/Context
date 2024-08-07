@@ -6,15 +6,13 @@ import arc.input.KeyCode;
 import arc.scene.Scene;
 import arc.scene.event.InputEvent;
 import arc.scene.event.InputListener;
-import arc.scene.ui.Button;
-import arc.scene.ui.CheckBox;
-import arc.scene.ui.Label;
-import arc.scene.ui.TextField;
+import arc.scene.ui.*;
 import arc.scene.ui.layout.Table;
 import mindustry.Vars;
 import mindustry.gen.Icon;
 import mindustry.gen.Tex;
 import mindustry.mod.Scripts;
+import mindustry.ui.Menus;
 import mindustry.ui.Styles;
 import mindustry.ui.dialogs.BaseDialog;
 import rhino.*;
@@ -36,6 +34,8 @@ public class SearchFunction {
     };
     private static final Label LABEL_EMPTY = new Label("@context.search-function.empty-field");
     private static final Table infoContent = new Table();
+    private static final Table infoDocsButton = new TextButton("@context.search-function.docs");
+    private static String infoDocsUrl = "";
     private static final TextField searchField = new TextField("Vars") {
         @Override
         protected InputListener createInputListener() {
@@ -137,6 +137,12 @@ public class SearchFunction {
         info.add("@context.search-function.info");
         info.row();
         info.add(infoContent).grow();
+        info.row();
+        info.add(infoDocsButton).growX();
+
+        // Info - docsButton
+        infoDocsButton.clicked(() -> Menus.openURI(infoDocsUrl));
+        infoDocsButton.visible = false;
 
         optionsSide.row();
 
@@ -196,6 +202,8 @@ public class SearchFunction {
 
     private static boolean displaySearch(String toSearch, String starts) {
         infoContent.clearChildren();
+        infoDocsButton.visible = false;
+
         Object obj;
         ArrayList<String> availableKeys;
         try {
@@ -210,6 +218,7 @@ public class SearchFunction {
             return false;
         }
 
+        // If is a class
         if (obj instanceof NativeJavaClass nObj) {
             Class<?> cl;
             try {
@@ -218,19 +227,28 @@ public class SearchFunction {
                 return false;
             }
 
-            infoContent.add(Core.bundle.format("context.search-function.info-class", cl.getName()));
+            // Making Overload buttons
             createButtonsFromClass(toSearch, starts, cl, availableKeys);
+
+            infoContent.add(Core.bundle.format("context.search-function.info-class", cl.getName()));
+            infoDocsButton.visible = changeUrl(cl.getName(),null);
             return true;
         }
 
+        // If is a Instance of a class
         if (obj instanceof NativeJavaObject nObj) {
             Class<?> cl = nObj.unwrap().getClass();
 
-            infoContent.add(Core.bundle.format("context.search-function.info-instance", cl.getName()));
+            // Making Overload buttons
             createButtonsFromClass(toSearch, starts, cl, availableKeys);
+
+            // Info management
+            infoContent.add(Core.bundle.format("context.search-function.info-instance", cl.getName()));
+            infoDocsButton.visible = changeUrl(cl.getName(),null);
             return true;
         }
 
+        // If is a Method
         if (obj instanceof NativeJavaMethod nObj) {
 
             String methodName = toSearch.substring(toSearch.lastIndexOf(".") + 1);
@@ -253,7 +271,7 @@ public class SearchFunction {
                 }
                 if (met.isEmpty()) throw new ClassNotFoundException();
 
-                infoContent.add(Core.bundle.format("context.search-function.info-method", methodName, cl.getName(), met.size()));
+                // Making Overload buttons
                 for (Method method : met) {
                     StringBuilder args = new StringBuilder();
 
@@ -286,6 +304,9 @@ public class SearchFunction {
                     });
                 }
 
+                // Info management
+                infoContent.add(Core.bundle.format("context.search-function.info-method", methodName, cl.getName(), met.size()));
+                infoDocsButton.visible = changeUrl(cl.getName(),"method-summary");
             } catch (Exception e) {
                 String[] values = nObj.toString().split("\n");
                 infoContent.add(Core.bundle.format("context.search-function.info-method", methodName, "Not found", values.length));
@@ -303,6 +324,7 @@ public class SearchFunction {
             return true;
         }
 
+        // If is a Property/Object
         if (obj instanceof NativeObject) {
             // ! To change
             infoContent.add("@context.search-function.info-object");
@@ -343,7 +365,7 @@ public class SearchFunction {
             args.append(entry.getKey()).append(",");
             objValues.add(entry.getValue());
         }
-        Function fn = s.context.compileFunction(s.scope, "function("+args.toString()+"){return "+code+"}", "SearchTerms", 1);
+        Function fn = s.context.compileFunction(s.scope, "function("+ args +"){return "+code+"}", "SearchTerms", 1);
         return fn.call(s.context, s.scope, objThis == null? s.scope : objThis, objValues.toArray());
     }
 
@@ -405,6 +427,24 @@ public class SearchFunction {
         return onUpload;
     }
 
+    /**
+     * Change the URL to the documentation
+     * @param path The path to the class
+     * @param elementId (nullable) The element id added at end of the link
+     * @return if this link exist
+     */
+    private static boolean changeUrl(String path, String elementId) {
+        if(path.startsWith("mindustry.gen")) return false;
+
+        if(path.startsWith("java")) infoDocsUrl = "https://docs.oracle.com/en/java/javase/16/docs/api/java.base/";
+        else infoDocsUrl = "https://mindustrygame.github.io/docs/";
+
+        infoDocsUrl += path.replace(".", "/") + ".html";
+        if(elementId != null) infoDocsUrl += "#" + elementId;
+
+        return true;
+    }
+
     public static void setOnUpload(Cons<String> onUpload) {
         SearchFunction.onUpload = onUpload;
     }
@@ -417,9 +457,7 @@ public class SearchFunction {
         arguments.put(name, obj);
     }
     public static void addVariable(Map<String, Object> variableMap) {
-        for (Map.Entry<String, Object> entry : variableMap.entrySet()) {
-            arguments.put(entry.getKey(), entry.getValue());
-        }
+        arguments.putAll(variableMap);
     }
 
     private static void onClose() {
