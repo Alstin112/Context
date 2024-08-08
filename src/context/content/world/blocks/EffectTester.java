@@ -2,6 +2,7 @@ package context.content.world.blocks;
 
 import arc.files.Fi;
 import arc.scene.ui.layout.Table;
+import arc.util.Log;
 import arc.util.io.Reads;
 import arc.util.io.Writes;
 import context.Utils;
@@ -89,14 +90,14 @@ public class EffectTester extends CodableTester {
                 cd.addTitle("@block.context-effect-tester.category-effect");
                 cd.addReadOnlyField("@block.context-effect-tester.id", effect.id + "");
                 cd.addFloatInput("@block.context-effect-tester.lifetime", effect.lifetime);
-                cd.addFloatInput("@block.context-effect-tester.clipsize", effect.clip);
+                cd.addFloatInput("@block.context-effect-tester.clip-size", effect.clip);
 
                 cd.addTitle("@block.context-effect-tester.category-code");
-                cd.addBooleanInput("@block.context-effect-tester.safemode", safeRunning);
+                cd.addBooleanInput("@context.testers.safe-running", safeRunning);
 
                 cd.setOnClose(values -> {
                     int v = 0;
-                    if ((boolean) values.get("@block.context-effect-tester.safemode")) v |= 0x1;
+                    if ((boolean) values.get("@context.testers.safe-running")) v |= 0x1;
 
                     configure(new Object[]{
                             values.get("@block.context-effect-tester.lifetime"),

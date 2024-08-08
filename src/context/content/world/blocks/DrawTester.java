@@ -99,12 +99,12 @@ public class DrawTester extends CodableTester {
                 ConfigurationDialog cd = new ConfigurationDialog("@editmessage");
                 cd.addTitle("@context.testers.configuration");
                 cd.addBooleanInput("@context.testers.safe-running", safeRunning);
-                cd.addBooleanInput("@block.context-draw-tester.invisible", invisibleWhenDraw);
+                cd.addBooleanInput("@context.testers.invisible", invisibleWhenDraw);
                 cd.setOnClose(values -> {
                     int b = 0;
                     if (displaying) b |= 0x1;
-                    if ((boolean) values.get("context.testers.safe-running")) b |= 0x2;
-                    if ((boolean) values.get("block.context-draw-tester.invisible")) b |= 0x4;
+                    if ((boolean) values.get("@context.testers.safe-running")) b |= 0x2;
+                    if ((boolean) values.get("@context.testers.invisible")) b |= 0x4;
 
                     configure(new Object[]{b});
                 });

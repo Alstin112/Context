@@ -96,11 +96,11 @@ public class JsTester extends CodableTester {
             }).size(40f);
             table.button(Icon.settings, Styles.cleari, () -> {
                 ConfigurationDialog cd = new ConfigurationDialog("@editmessage");
-                cd.addBooleanInput("@block.context-js-tester.safemode", safeRunning);
+                cd.addBooleanInput("@context.testers.safe-running", safeRunning);
 
                 cd.setOnClose(values -> {
                     int v = 0;
-                    if ((boolean) values.get("@block.context-js-tester.safemode")) v |= 0x1;
+                    if ((boolean) values.get("@context.testers.safe-running")) v |= 0x1;
 
                     configure(new Object[]{v});
                 });

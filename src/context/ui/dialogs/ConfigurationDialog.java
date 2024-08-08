@@ -45,29 +45,53 @@ public class ConfigurationDialog {
         bd.cont.add(tf).row();
         return tf;
     }
-    public TextField addTextField(String label, String defaultValue) {
+
+    /**
+     * Adds a Text Field to the configuration page.
+     * @param name the name of the configuration to refer later.
+     * @param label the text that will display on side of the TextField.
+     * @param defaultValue the default value of the TextField.
+     * @return the TextField
+     */
+    public TextField addTextField(String name, String label, String defaultValue) {
         TextField tf = new TextField(defaultValue);
-        tf.changed(() -> values.put(label, tf.getText()));
-        values.put(label, defaultValue);
+        tf.changed(() -> values.put(name, tf.getText()));
+        values.put(name, defaultValue);
         bd.cont.add(label);
         bd.cont.add(tf).row();
         return tf;
     }
-    public TextField addFloatInput(String label, Float defaultValue) {
+
+    /**
+     * Adds a Float Field to the configuration page.
+     * @param name the name of the configuration to refer later.
+     * @param label the text that will display on side of the TextField.
+     * @param defaultValue the default value of the TextField.
+     * @return the TextField
+     */
+    public TextField addFloatInput(String name, String label, Float defaultValue) {
         TextField tf = new TextField(defaultValue.toString());
         tf.setValidator(FloatValidator);
         tf.setFilter(FloatFilter);
-        tf.changed(() -> values.put(label, Float.parseFloat(tf.getText())));
-        values.put(label, defaultValue);
+        tf.changed(() -> values.put(name, Float.parseFloat(tf.getText())));
+        values.put(name, defaultValue);
         bd.cont.add(label);
         bd.cont.add(tf).row();
         return tf;
     }
-    public CheckBox addBooleanInput(String label, Boolean defaultValue) {
+
+    /**
+     * Adds a Boolean Field to the configuration page.
+     * @param name the name of the configuration to refer later.
+     * @param label the text that will display on side of the CheckBox.
+     * @param defaultValue the default value of the CheckBox.
+     * @return the CheckBox
+     */
+    public CheckBox addBooleanInput(String name, String label, Boolean defaultValue) {
         CheckBox cb = new CheckBox("");
         cb.setChecked(defaultValue);
-        cb.changed(() -> values.put(label, cb.isChecked()));
-        values.put(label, defaultValue);
+        cb.changed(() -> values.put(name, cb.isChecked()));
+        values.put(name, defaultValue);
         bd.cont.add(label);
         bd.cont.add(cb).row();
         return cb;
