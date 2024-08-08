@@ -25,11 +25,12 @@ public class JsTester extends CodableTester {
 
         config(Object[].class, (JsTesterBuild b, Object[] config) -> {
             int i = 0;
-
-            if (config[i] instanceof String) b.setCode((String) config[i++]);
+            if (config[i] instanceof String) b.setCodeSilent((String) config[i++]);
 
             int v = (int) config[i];
-            b.safeRunning = (v & 0b00000001) != 0;
+            b.safeRunning = (v & 0x1) != 0;
+
+            b.updateRunFn();
         });
         config(String.class, JsTesterBuild::setCode);
     }
@@ -96,11 +97,11 @@ public class JsTester extends CodableTester {
             }).size(40f);
             table.button(Icon.settings, Styles.cleari, () -> {
                 ConfigurationDialog cd = new ConfigurationDialog("@editmessage");
-                cd.addBooleanInput("@context.testers.safe-running", safeRunning);
+                cd.addBooleanInput("safe","@context.testers.safe-running", safeRunning);
 
                 cd.setOnClose(values -> {
                     int v = 0;
-                    if ((boolean) values.get("@context.testers.safe-running")) v |= 0x1;
+                    if ((boolean) values.get("safe")) v |= 0x1;
 
                     configure(new Object[]{v});
                 });
@@ -123,16 +124,14 @@ public class JsTester extends CodableTester {
             return code.isEmpty();
         }
 
-        public void updateRunFn(String value) {
-            if (value.trim().isEmpty()) return;
-
-            if (safeRunning) Utils.applySafeRunning(value);
+        public void updateRunFn() {
+            if (code.trim().isEmpty()) return;
 
             ArrayList<Object> argsObj = new ArrayList<>();
 
             Scripts scripts = Vars.mods.getScripts();
             try {
-                String textCode = "function(){" + value + " \n}";
+                String textCode = "function(){" + Utils.applySafeRunning(code) + " \n}";
                 Function fn = scripts.context.compileFunction(scripts.scope, textCode, "JsTester", 1);
                 runFn = () -> fn.call(scripts.context, scripts.scope, rhino.Context.toObject(this, scripts.scope), argsObj.toArray());
                 setError();
@@ -141,12 +140,14 @@ public class JsTester extends CodableTester {
             }
         }
 
+        private void setCodeSilent(String code) {
+            if (!Objects.equals(code, this.code)) lastEditByPlayer = false;
+            this.code = code;
+        }
 
         public void setCode(String code) {
-            if (!Objects.equals(code, this.code)) lastEditByPlayer = false;
-
-            this.code = code;
-            updateRunFn(code);
+            setCodeSilent(code);
+            updateRunFn();
         }
 
         @Override

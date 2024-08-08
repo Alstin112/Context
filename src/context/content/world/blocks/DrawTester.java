@@ -28,13 +28,15 @@ public class DrawTester extends CodableTester {
         config(Object[].class, (DrawTesterBuild b, Object[] config) -> {
             int i = 0;
 
-            if (config[i] instanceof String) b.setCode((String) config[i++]);
+            if (config[i] instanceof String) b.setCodeSilent((String) config[i++]);
 
             // Getting the configs
             int v = (int) config[i];
             b.displaying = (v & 0b00000001) != 0;
             b.safeRunning = (v & 0b00000010) != 0;
             b.invisibleWhenDraw = (v & 0b00000100) != 0;
+
+            b.updateDrawFn();
         });
         config(String.class, DrawTesterBuild::setCode);
         config(Boolean.class, (DrawTesterBuild b, Boolean config) -> b.displaying = config);
@@ -98,13 +100,13 @@ public class DrawTester extends CodableTester {
             table.button(Icon.settings, Styles.cleari, () -> {
                 ConfigurationDialog cd = new ConfigurationDialog("@editmessage");
                 cd.addTitle("@context.testers.configuration");
-                cd.addBooleanInput("@context.testers.safe-running", safeRunning);
-                cd.addBooleanInput("@context.testers.invisible", invisibleWhenDraw);
+                cd.addBooleanInput("safe","@context.testers.safe-running", safeRunning);
+                cd.addBooleanInput("invisible","@context.testers.invisible", invisibleWhenDraw);
                 cd.setOnClose(values -> {
                     int b = 0;
                     if (displaying) b |= 0x1;
-                    if ((boolean) values.get("@context.testers.safe-running")) b |= 0x2;
-                    if ((boolean) values.get("@context.testers.invisible")) b |= 0x4;
+                    if ((boolean) values.get("safe")) b |= 0x2;
+                    if ((boolean) values.get("invisible")) b |= 0x4;
 
                     configure(new Object[]{b});
                 });
@@ -143,14 +145,12 @@ public class DrawTester extends CodableTester {
             return code.isEmpty();
         }
 
-        public void updateDrawFn(String value) {
-            if (value.trim().isEmpty()) return;
-
-            if (safeRunning) value = Utils.applySafeRunning(value);
+        public void updateDrawFn() {
+            if (code.trim().isEmpty()) return;
 
             Scripts scripts = Vars.mods.getScripts();
             try {
-                String codeStr = "function(){" + value + "\n}";
+                String codeStr = "function(){" + Utils.applySafeRunning(code) + "\n}";
                 Function fn = scripts.context.compileFunction(scripts.scope, codeStr, "drawTester", 1);
                 drawFn = () -> fn.call(scripts.context, scripts.scope, rhino.Context.toObject(this, scripts.scope), new Object[0]);
 
@@ -160,11 +160,14 @@ public class DrawTester extends CodableTester {
             }
         }
 
-        public void setCode(String code) {
+        private void setCodeSilent(String code) {
             if (!Objects.equals(code, this.code)) lastEditByPlayer = false;
-
             this.code = code;
-            updateDrawFn(code);
+        }
+
+        public void setCode(String code) {
+            setCodeSilent(code);
+            updateDrawFn();
         }
 
         public String getCode() {

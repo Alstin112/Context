@@ -15,7 +15,7 @@ public class Utils {
         String randomVariable = randomGenerator.nextInt(1000000) + "";
         return MessageFormat.format("let _{0}=this;{1}",
                 randomVariable,
-                Utils.applySafeRunning(code, "_" + randomVariable + ".setError(e, false)")
+                applySafeRunning(code, "_" + randomVariable + ".setError(e, false)")
         );
     }
     public static String applySafeRunning(String code, String runInError) {

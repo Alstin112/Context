@@ -2,7 +2,6 @@ package context.content.world.blocks;
 
 import arc.files.Fi;
 import arc.scene.ui.layout.Table;
-import arc.util.Log;
 import arc.util.io.Reads;
 import arc.util.io.Writes;
 import context.Utils;
@@ -27,12 +26,13 @@ public class EffectTester extends CodableTester {
         config(Object[].class, (EffectTesterBuild b, Object[] config) -> {
             int i = 0;
 
-            if (config[i] instanceof String) b.setCode((String) config[i++]);
+            if (config[i] instanceof String)  b.setCodeSilent((String) config[i++]);
 
             b.effect.lifetime = (float) config[i++];
             b.effect.clip = (float) config[i++];
             b.safeRunning = ((int) config[i] & 0x1) != 0;
 
+            b.updateRunFn();
         });
     }
 
@@ -89,21 +89,17 @@ public class EffectTester extends CodableTester {
 
                 cd.addTitle("@block.context-effect-tester.category-effect");
                 cd.addReadOnlyField("@block.context-effect-tester.id", effect.id + "");
-                cd.addFloatInput("@block.context-effect-tester.lifetime", effect.lifetime);
-                cd.addFloatInput("@block.context-effect-tester.clip-size", effect.clip);
+                cd.addFloatInput("lifetime", "@block.context-effect-tester.lifetime", effect.lifetime);
+                cd.addFloatInput("clip", "@block.context-effect-tester.clip-size", effect.clip);
 
                 cd.addTitle("@block.context-effect-tester.category-code");
-                cd.addBooleanInput("@context.testers.safe-running", safeRunning);
+                cd.addBooleanInput("safe", "@context.testers.safe-running", safeRunning);
 
                 cd.setOnClose(values -> {
                     int v = 0;
-                    if ((boolean) values.get("@context.testers.safe-running")) v |= 0x1;
+                    if ((boolean) values.get("safe")) v |= 0x1;
 
-                    configure(new Object[]{
-                            values.get("@block.context-effect-tester.lifetime"),
-                            values.get("@block.context-effect-tester.clip-size"),
-                            v
-                    });
+                    configure(new Object[]{values.get("lifetime"),values.get("clip"),v});
                 });
                 cd.show();
             }).size(40f);
@@ -124,14 +120,12 @@ public class EffectTester extends CodableTester {
             return code.isEmpty();
         }
 
-        public void updateRunFn(String value) {
-            if (value.trim().isEmpty()) return;
-
-            if (safeRunning) Utils.applySafeRunning(value);
+        public void updateRunFn() {
+            if (code.trim().isEmpty()) return;
 
             Scripts scripts = Vars.mods.getScripts();
             try {
-                String codeStr = "function(e){" + value + "\n}";
+                String codeStr = "function(e){" + Utils.applySafeRunning(code) + "\n}";
                 Function fn = scripts.context.compileFunction(scripts.scope, codeStr, "EffectTester", 1);
                 effect.renderer = e -> {
                     setError();
@@ -148,11 +142,14 @@ public class EffectTester extends CodableTester {
             }
         }
 
-        private void setCode(String code) {
+        private void setCodeSilent(String code) {
             if (!Objects.equals(code, this.code)) lastEditByPlayer = false;
-
             this.code = code;
-            updateRunFn(code);
+        }
+
+        public void setCode(String code) {
+            setCodeSilent(code);
+            updateRunFn();
         }
 
         public String getCode() {
