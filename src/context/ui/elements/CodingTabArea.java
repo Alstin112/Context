@@ -13,7 +13,7 @@ import arc.scene.ui.TextField;
 import arc.scene.ui.layout.Table;
 import arc.util.Align;
 import arc.util.Timer;
-import context.ui.ColoredTextArea;
+import context.ui.AdvancedTextArea;
 import context.ui.TabArea;
 import context.ui.dialogs.FileSyncTypeDialog;
 import context.ui.dialogs.SearchFunction;
@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class CodingTabArea extends TabArea {
-    private final ColoredTextArea codeArea = new ColoredTextArea("");
+    private final AdvancedTextArea codeArea = new AdvancedTextArea("");
     private final Label lineLabel = new Label("") {
         @Override
         public float getPrefHeight() {
