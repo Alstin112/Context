@@ -4,7 +4,7 @@ author: "Alstin112 and Flintyx"
 description: "this mod add more command blocks to help mod-creators, inpired in \"testers\" by [royal]sk7725[]"
 
 minGameVersion: 146
-version: "v0.1.1"
+version: "v0.1.2"
 
 java: true
 main: "context.Context"
