@@ -93,16 +93,6 @@ public class JsTester extends CodableTester {
                 tab.setCode(code);
                 tab.setObjThis(this);
 
-                ide.addButton(new TextButton("@context.hide-and-run")).clicked(() -> {
-                    if (ide.trySave()) {
-                        ide.close();
-                        this.run();
-                    }
-                });
-                ide.addButton(new TextButton("@context.only-run")).clicked(() -> {
-                    if (ide.trySave()) this.run();
-                });
-
                 ide.setOnSave(codeIde -> {
                     this.configure(tab.getCode());
                     if (synchronizedFile != null) lastTimeFileModified = synchronizedFile.lastModified();
