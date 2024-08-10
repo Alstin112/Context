@@ -104,6 +104,7 @@ public class DrawTester extends CodableTester {
                 CodingTabArea tab = new CodingTabArea();
 
                 ide.addTab(tab);
+                ide.hideTabs(true);
                 ide.maxByteOutput = 65522; // (65535 = Max bytes size) - (12 = build properties) - (1 = build version)
                 tab.setCode(code);
                 tab.setObjThis(this);
