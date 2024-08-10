@@ -7,7 +7,7 @@ import mindustry.ui.dialogs.BaseDialog;
 public class FileSyncTypeDialog {
 
     public FileSyncTypeDialog(boolean resetOption, boolean optional, Cons<SyncType> cb) {
-        BaseDialog bd = new BaseDialog("@choose");
+        BaseDialog bd = new BaseDialog("@context.choose-file");
 
         bd.cont.label(() -> "@context.code-ide.difference");
         bd.buttons.defaults().size(230f,64f);

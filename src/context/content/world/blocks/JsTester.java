@@ -1,7 +1,6 @@
 package context.content.world.blocks;
 
 import arc.files.Fi;
-import arc.scene.ui.TextButton;
 import arc.scene.ui.layout.Table;
 import arc.util.io.Reads;
 import arc.util.io.Writes;
