@@ -15,6 +15,13 @@ public class Context extends Mod {
         new FunctionAnalyzer("function-analyzer");
     }
 
+    /**
+     * WIP
+     * Reloads the contents of the all the mods. This can crash your game, but to reload the content you will need restart the game anyway
+     * soo it's not a big deal.
+     * The intention of this command for now is to use in console `Vars.mods.getMod("context").main.reloadContents()`.
+     * can be used inside the world, but the blocks will be needed to be replaced with new from your inventory.
+     */
     public void reloadContents() {
         ReloadContents.show();
     }
