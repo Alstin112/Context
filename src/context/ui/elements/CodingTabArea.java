@@ -20,9 +20,6 @@ import context.ui.dialogs.SearchFunction;
 import mindustry.Vars;
 import mindustry.ui.Styles;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class CodingTabArea extends TabArea {
     private final AdvancedTextArea codeArea = new AdvancedTextArea("");
     private final Label lineLabel = new Label("") {
@@ -45,7 +42,6 @@ public class CodingTabArea extends TabArea {
 
     // region Search Terms
     private Object objThis = null;
-    private Map<String, Object> customVariables = new HashMap<>();
 
     public CodingTabArea() {
         super();
@@ -133,9 +129,8 @@ public class CodingTabArea extends TabArea {
     }
 
     private void showSearch() {
-        SearchFunction.addVariable(customVariables);
         SearchFunction.setObjThis(objThis);
-        SearchFunction.show(str -> {
+        SearchFunction.setOnUpload(str -> {
             codeArea.getScene().setKeyboardFocus(codeArea);
             String text = codeArea.getText();
             int cursor = codeArea.getCursorPosition();
@@ -163,6 +158,7 @@ public class CodingTabArea extends TabArea {
             codeArea.setCursorPosition(cursor + str.length());
             codeArea.setSelection(cursor, cursor + str.length());
         });
+        SearchFunction.show();
     }
 
     public void setCode(String code) {
@@ -192,10 +188,6 @@ public class CodingTabArea extends TabArea {
                 readFromFile(false);
             }
         }, 1, 1);
-    }
-
-    public void addVariable(String name, Object value) {
-        customVariables.put(name, value);
     }
 
     public void readFromFile(boolean replaceFile) {

@@ -29,16 +29,23 @@ import java.lang.reflect.Field;
 public class FunctionAnalyzerDialog {
 
     private static final BaseDialog bd = new BaseDialog("@block.context-function-analyzer.name");
+    /** Last time the code changed */
+    protected static long lastDisplayChange = 0;
+    /** If the code is valid */
+    private static boolean isValid = false;
+    /** the zoom level of the graphic */
+    private static float zoom = 1;
+    /** the offset in the X axis */
+    private static float offsetX = 0;
+    /** the values of the function ranging from 0 to 1 */
     private static float[] values = new float[201];
+    /** the values of the function ranging from offset to offset + zoom */
     private static float[] valuesHigh = new float[201];
+
     private static float graphUnitHeight = 0;
     private static float graphUnitWidth = 0;
     private static float graphOriginX = 0;
     private static float graphOriginY = 0;
-    protected static long lastDisplayChange = 0;
-    private static boolean isValid = false;
-    private static float zoom = 1;
-    private static float offsetX = 0;
     private static final Element graphic = new Element() {
         @Override
         public void draw() {
@@ -59,18 +66,20 @@ public class FunctionAnalyzerDialog {
             graphUnitWidth = width - margin*2;
             graphUnitHeight = height * 0.6f;
 
+            float height0 = -height * min / (max - min);
+            float height1 = height * (1 - min) / (max - min);
             if (min == 0) {
                 Fonts.def.draw("0", this.x, this.y, 0.2f, Align.left, false);
             } else {
                 Fonts.def.draw(String.valueOf(min), this.x, this.y, 0.2f, Align.left, false);
-                Fonts.def.draw("0", this.x, this.y - height * min / (max - min), 0.2f, Align.left, false);
+                Fonts.def.draw("0", this.x, this.y + height0, 0.2f, Align.left, false);
             }
 
             if (max == 1) {
                 Fonts.def.draw("1", this.x, this.y + height, 0.2f, Align.left, false);
             } else {
                 Fonts.def.draw(String.valueOf(max), this.x, this.y + height, 0.2f, Align.left, false);
-                Fonts.def.draw("1", this.x, this.y + height * (1 - min) / (max - min), 0.2f, Align.left, false);
+                Fonts.def.draw("1", this.x, this.y + height1, 0.2f, Align.left, false);
             }
 
             Lines.stroke(1, Color.gray);
@@ -90,9 +99,9 @@ public class FunctionAnalyzerDialog {
             Lines.line(graphX, this.y, graphX + graphUnitWidth, this.y);
             Lines.line(graphX, this.y + height, graphX + graphUnitWidth, this.y + height);
             if (min != 0)
-                Lines.line(graphX, this.y - height * min / (max - min), graphX + graphUnitWidth, this.y - height * min / (max - min));
+                Lines.line(graphX, this.y + height0, graphX + graphUnitWidth, this.y + height0);
             if (max != 1)
-                Lines.line(graphX, this.y + height * (1 - min) / (max - min), graphX + graphUnitWidth, this.y + height * (1 - min) / (max - min));
+                Lines.line(graphX, this.y + height1, graphX + graphUnitWidth, this.y + height1);
 
             Lines.stroke(4, Color.cyan);
             Lines.beginLine();
@@ -125,7 +134,7 @@ public class FunctionAnalyzerDialog {
 
     };
 
-    private static final TextArea code = new TextArea("return t*t");
+    private static final TextArea codeArea = new TextArea("return t*t");
 
     private static FloatFloatf function = x -> x * x;
 
@@ -187,11 +196,11 @@ public class FunctionAnalyzerDialog {
             }
         });
 
-        code.setValidator(txt -> isValid);
-        code.changed(FunctionAnalyzerDialog::getPoints);
+        codeArea.setValidator(txt -> isValid);
+        codeArea.changed(FunctionAnalyzerDialog::getPoints);
 
         bd.cont.table(lvDivision -> {
-            lvDivision.table(Tex.button, coding -> coding.add(code).grow().minHeight(200f)).grow();
+            lvDivision.table(Tex.button, coding -> coding.add(codeArea).grow().minHeight(200f)).grow();
             lvDivision.row();
             lvDivision.table(Tex.button, settings -> {
                 Table area = new Table();
@@ -230,7 +239,7 @@ public class FunctionAnalyzerDialog {
     private static void getPoints() {
         Scripts s = Vars.mods.getScripts();
         try {
-            String codeStr = "function(t){" + code.getText() + ";\n}";
+            String codeStr = "function(t){" + codeArea.getText() + ";\n}";
             Function fn = s.context.compileFunction(s.scope, codeStr, "function-analyzer", 1);
             function = v -> ((Number) fn.call(s.context, s.scope, s.scope, new Object[]{v})).floatValue();
             float[] newValues = new float[values.length];
@@ -248,7 +257,7 @@ public class FunctionAnalyzerDialog {
     private static void getPointsHigh() {
         Scripts s = Vars.mods.getScripts();
         try {
-            String codeStr = "function(t){" + code.getText() + ";\n}";
+            String codeStr = "function(t){" + codeArea.getText() + ";\n}";
             Function fn = s.context.compileFunction(s.scope, codeStr, "function-analyzer", 1);
             function = v -> ((Number) fn.call(s.context, s.scope, s.scope, new Object[]{v})).floatValue();
             float[] newValues = new float[values.length];
@@ -263,7 +272,7 @@ public class FunctionAnalyzerDialog {
     }
 
     private static void setCode(String text) {
-        code.setText(text);
+        codeArea.setText(text);
         getPoints();
         lastDisplayChange = Time.millis();
     }
@@ -318,7 +327,7 @@ public class FunctionAnalyzerDialog {
             else if (Tmp.v1.x > 1 - delta) derivate = (function.get(1) - function.get(1 - 2 * delta)) / (2 * delta);
             else derivate = (function.get(Tmp.v1.x + delta) - function.get(Tmp.v1.x - delta)) / (2 * delta);
 
-            // append derivate rounded 3 decimal
+            // append derivative rounded 3 decimal
             sb.append(Math.round(derivate * 1000) / 1000f).append("\n");
 
             return sb.toString();

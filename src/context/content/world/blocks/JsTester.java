@@ -37,10 +37,47 @@ public class JsTester extends CodableTester {
 
     public class JsTesterBuild extends CodableTesterBuild {
 
+        /** The code to be executed */
         private String code = "";
-        private Runnable runFn = () -> {
-        };
+        /** The function to be executed */
+        private Runnable runFn = () -> {};
+        /** File that the building will replace when code changes*/
         private Fi synchronizedFile = null;
+        /** Run the block */
+        public void run() {
+            try {
+                this.runFn.run();
+                setError();
+            } catch (Exception e) {
+                setError(e.getMessage(), false);
+            }
+        }
+        /** Update the runnable that runs the code */
+        public void updateRunFn() {
+            if (code.trim().isEmpty()) return;
+
+            ArrayList<Object> argsObj = new ArrayList<>();
+
+            Scripts scripts = Vars.mods.getScripts();
+            try {
+                String textCode = "function(){" + Utils.applySafeRunning(code) + " \n}";
+                Function fn = scripts.context.compileFunction(scripts.scope, textCode, "JsTester", 1);
+                runFn = () -> fn.call(scripts.context, scripts.scope, rhino.Context.toObject(this, scripts.scope), argsObj.toArray());
+                setError();
+            } catch (Throwable e) {
+                setError(e.getMessage(), true);
+            }
+        }
+        /** Change the code without updating */
+        private void setCodeSilent(String code) {
+            if (!Objects.equals(code, this.code)) lastEditByPlayer = false;
+            this.code = code;
+        }
+        /** Change the code updating the runnable */
+        public void setCode(String code) {
+            setCodeSilent(code);
+            updateRunFn();
+        }
 
         @Override
         public void buildConfiguration(Table table) {
@@ -81,7 +118,6 @@ public class JsTester extends CodableTester {
 
                 final boolean FileChanged = synchronizedFile.lastModified() != lastTimeFileModified;
                 final boolean CodeChanged = !lastEditByPlayer;
-
                 if (FileChanged && CodeChanged) {
                     new FileSyncTypeDialog(false, true, type -> {
                         if (type == FileSyncTypeDialog.SyncType.CANCEL) return;
@@ -91,12 +127,13 @@ public class JsTester extends CodableTester {
                     });
                     return;
                 }
+
                 tab.setSync(synchronizedFile, CodeChanged);
                 ide.show();
                 deselect();
             }).size(40f);
             table.button(Icon.settings, Styles.cleari, () -> {
-                ConfigurationDialog cd = new ConfigurationDialog("@editmessage");
+                ConfigurationDialog cd = new ConfigurationDialog("@context.testers.configuration");
                 cd.addBooleanInput("safe","@context.testers.safe-running", safeRunning);
 
                 cd.setOnClose(values -> {
@@ -110,46 +147,10 @@ public class JsTester extends CodableTester {
             table.button(Icon.play, Styles.cleari, this::run).size(40f);
         }
 
-        public void run() {
-            setError();
-            try {
-                this.runFn.run();
-            } catch (Exception e) {
-                setError(e.getMessage(), false);
-            }
-        }
-
         @Override
         public boolean isEmpty() {
             return code.isEmpty();
         }
-
-        public void updateRunFn() {
-            if (code.trim().isEmpty()) return;
-
-            ArrayList<Object> argsObj = new ArrayList<>();
-
-            Scripts scripts = Vars.mods.getScripts();
-            try {
-                String textCode = "function(){" + Utils.applySafeRunning(code) + " \n}";
-                Function fn = scripts.context.compileFunction(scripts.scope, textCode, "JsTester", 1);
-                runFn = () -> fn.call(scripts.context, scripts.scope, rhino.Context.toObject(this, scripts.scope), argsObj.toArray());
-                setError();
-            } catch (Throwable e) {
-                setError(e.getMessage(), true);
-            }
-        }
-
-        private void setCodeSilent(String code) {
-            if (!Objects.equals(code, this.code)) lastEditByPlayer = false;
-            this.code = code;
-        }
-
-        public void setCode(String code) {
-            setCodeSilent(code);
-            updateRunFn();
-        }
-
         @Override
         public Object[] config() {
             int v = 0;

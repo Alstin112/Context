@@ -57,8 +57,48 @@ public class DrawTester extends CodableTester {
         /** Should this block be able to run */
         private boolean displaying = true;
 
+        /** Update the runnable that runs the code */
+        public void updateDrawFn() {
+            if (code.trim().isEmpty()) return;
+
+            Scripts scripts = Vars.mods.getScripts();
+            try {
+                String codeStr = "function(){" + Utils.applySafeRunning(code) + "\n}";
+                Function fn = scripts.context.compileFunction(scripts.scope, codeStr, "drawTester", 1);
+                drawFn = () -> fn.call(scripts.context, scripts.scope, rhino.Context.toObject(this, scripts.scope), new Object[0]);
+
+                setError();
+            } catch (Exception e) {
+                setError(e.getMessage(), true);
+            }
+        }
+
+        /** Change the code of this block without updating DrawFn */
+        private void setCodeSilent(String code) {
+            if (!Objects.equals(code, this.code)) lastEditByPlayer = false;
+            this.code = code;
+        }
+
+        // Mean to be used inside game
+        /** Change the code of this block updating DrawFn */
+        public void setCode(String code) {
+            setCodeSilent(code);
+            updateDrawFn();
+        }
+
+        /** Get the code of this block */
+        public String getCode() {
+            return code;
+        }
+
+        /** Get the function to draw */
+        public Runnable getDrawFn() {
+            return drawFn;
+        }
+
         @Override
         public void buildConfiguration(Table table) {
+            // Open the code editor
             table.button(Icon.pencil, Styles.cleari, () -> {
                 CodeIde ide = new CodeIde();
                 CodingTabArea tab = new CodingTabArea();
@@ -96,10 +136,10 @@ public class DrawTester extends CodableTester {
                 ide.show();
                 deselect();
             }).size(40f);
-
+            // Open the build settings
             table.button(Icon.settings, Styles.cleari, () -> {
-                ConfigurationDialog cd = new ConfigurationDialog("@editmessage");
-                cd.addTitle("@context.testers.configuration");
+                ConfigurationDialog cd = new ConfigurationDialog("@context.testers.configuration");
+                cd.addSeparator("@context.testers.configuration");
                 cd.addBooleanInput("safe","@context.testers.safe-running", safeRunning);
                 cd.addBooleanInput("invisible","@context.testers.invisible", invisibleWhenDraw);
                 cd.setOnClose(values -> {
@@ -112,7 +152,7 @@ public class DrawTester extends CodableTester {
                 });
                 cd.show();
             }).size(40f);
-
+            // Set the build as enabled/disabled
             ImageButton btn;
             btn = new ImageButton(new ImageButton.ImageButtonStyle(Styles.cleari));
             btn.getStyle().imageUp = Icon.eyeSmall;
@@ -125,7 +165,7 @@ public class DrawTester extends CodableTester {
 
         @Override
         public void draw() {
-            updateMode();
+            TestersModes mode = getMode();
             if (mode != TestersModes.ACTIVE && mode != TestersModes.RUNTIME_ERROR) {
                 super.draw();
                 return;
@@ -145,43 +185,10 @@ public class DrawTester extends CodableTester {
             return code.isEmpty();
         }
 
-        public void updateDrawFn() {
-            if (code.trim().isEmpty()) return;
-
-            Scripts scripts = Vars.mods.getScripts();
-            try {
-                String codeStr = "function(){" + Utils.applySafeRunning(code) + "\n}";
-                Function fn = scripts.context.compileFunction(scripts.scope, codeStr, "drawTester", 1);
-                drawFn = () -> fn.call(scripts.context, scripts.scope, rhino.Context.toObject(this, scripts.scope), new Object[0]);
-
-                setError();
-            } catch (Exception e) {
-                setError(e.getMessage(), true);
-            }
-        }
-
-        private void setCodeSilent(String code) {
-            if (!Objects.equals(code, this.code)) lastEditByPlayer = false;
-            this.code = code;
-        }
-
-        public void setCode(String code) {
-            setCodeSilent(code);
-            updateDrawFn();
-        }
-
-        public String getCode() {
-            return code;
-        }
-
-        public Runnable getDrawFn() {
-            return drawFn;
-        }
-
         @Override
-        public void updateMode() {
-            if (!displaying) mode = TestersModes.INACTIVE;
-            else super.updateMode();
+        public TestersModes getMode() {
+            if (!displaying) return TestersModes.INACTIVE;
+            return super.getMode();
         }
 
         @Override

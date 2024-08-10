@@ -22,14 +22,14 @@ import static mindustry.Vars.tilesize;
 public abstract class BaseContextBlock extends Block {
     //don't change this too much unless you want to run into issues with packet sizes
 
-    public BaseContextBlock(String name) {
+    protected BaseContextBlock(String name) {
         super(name);
-        configurable = true;
-        solid = true;
-        destructible = true;
         group = BlockGroup.logic;
-        drawDisabled = false;
         envEnabled = Env.any;
+        drawDisabled = false;
+        configurable = true;
+        destructible = true;
+        solid = true;
         this.alwaysUnlocked = true;
         this.category = Category.logic;
         this.requirements = ItemStack.with();

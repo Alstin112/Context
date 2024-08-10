@@ -70,9 +70,17 @@ public class IconDictionary extends BaseContextBlock {
             if (iconsChar == null) reloadCharIcons();
             Table catButtons = new Table();
 
+            // TODO - when the game start, the char icons don't appear, needs to press f8 to reload (idk why)
+            // TODO - This categories isn't precise, but i don't feel that is a good way picking manually for each ascii character
+            // TODO - When opened some char, the menu gets offset, and idk how fix.
+
+            // Char icons button
             Button cButton = new ImageButton(Fonts.getGlyph(Fonts.def, '\ue242'), Styles.cleari);
+            // Mindustry icons button
             Button mButton = new ImageButton(Fonts.getGlyph(Fonts.def, '\uf869'), Styles.cleari);
+            // Image icons button
             Button iButton = new ImageButton(Icon.info, Styles.cleari);
+
 
             cButton.clicked(() -> {
                 table.clearChildren();
@@ -141,6 +149,11 @@ public class IconDictionary extends BaseContextBlock {
             table.add(catButtons);
         }
 
+        /**
+         * Creates a menu for copying a character
+         * @param t the table to change
+         * @param c the character to be copied
+         */
         public void selectedIcon(Table t, char c) {
             t.clearChildren();
             Table table = t.table().get();
@@ -162,6 +175,7 @@ public class IconDictionary extends BaseContextBlock {
 
         @Override
         public void updateTableAlign(Table table) {
+            // Probably my attempt to fix the offset of the table
             Vec2 pos = Core.input.mouseScreen(x, y + size * tilesize / 2f + 1);
             table.setPosition(pos.x, pos.y, Align.bottom);
         }

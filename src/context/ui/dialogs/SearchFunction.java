@@ -20,7 +20,6 @@ import rhino.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.text.MessageFormat;
 import java.util.*;
 
 public class SearchFunction {
@@ -32,10 +31,12 @@ public class SearchFunction {
             super.hide();
         }
     };
+    /** Shows if there is no result for the search */
     private static final Label LABEL_EMPTY = new Label("@context.search-function.empty-field");
+    /** Table where will be the information about a selection */
     private static final Table infoContent = new Table();
+    /** Button where leads the user to the url with more information about the method */
     private static final Table infoDocsButton = new TextButton("@context.search-function.docs");
-    private static String infoDocsUrl = "";
     private static final TextField searchField = new TextField("Vars") {
         @Override
         protected InputListener createInputListener() {
@@ -72,10 +73,10 @@ public class SearchFunction {
 
                 @Override
                 public boolean keyUp(InputEvent event, KeyCode keycode) {
-                    if(disabled) return false;
-                    if(imeData != null) return true;
+                    if (disabled) return false;
+                    if (imeData != null) return true;
 
-                    if(keycode == KeyCode.enter && selectedLine != -1) {
+                    if (keycode == KeyCode.enter && selectedLine != -1) {
                         selectedButton.fireClick();
                         goEnd(true);
                         if (Core.input.ctrl()) {
@@ -90,27 +91,40 @@ public class SearchFunction {
         }
     };
     private static final Table resultsShow = new Table();
+
+    // FILTER BUTTONS
     private static final CheckBox checkOnlyAvailable = new CheckBox("[green]\uE88E[] " + Core.bundle.get("context.search-function.only-available"));
     private static final CheckBox checkMethods = new CheckBox(ButtonInfoType.METHOD.v + Core.bundle.get("context.search-function.methods"));
     private static final CheckBox checkFields = new CheckBox(ButtonInfoType.FIELD.v + Core.bundle.get("context.search-function.fields"));
-
-    private static Scriptable objThis = null;
-
-    private static Button selectedButton = null;
-
+    /** WIP, is "global variables" map, in that way the SearchFunction can see the values of variables */
     private static final Map<String, Object> arguments = new HashMap<>();
+
+    /** URL to documentation */
+    private static String infoDocsUrl = "";
+    private static Scriptable objThis = null;
+    private static Button selectedButton = null;
+    private static Cons<String> onUpload = null;
+    private static int selectedLine = -1;
+
+    // Search Buttons
+
+    private static final Button copyButton = new ImageButton(Icon.copy);
+    private static final Button uploadButton = new ImageButton(Icon.upload);
 
     static {
         bd.cont.setBackground(Tex.button);
         resultsShow.defaults().left();
 
         // Search Area
+        copyButton.clicked(() -> Core.app.setClipboardText(searchField.getText()));
+        uploadButton.clicked(() -> {
+            if (getOnUpload() != null) getOnUpload().get(searchField.getText());
+            bd.hide();
+        });
+        uploadButton.visible = false;
         bd.cont.table(tableSearch -> {
-            tableSearch.button(Icon.copy, () -> Core.app.setClipboardText(searchField.getText())).size(40f).padRight(5f);
-            tableSearch.button(Icon.upload, () -> {
-                if (getOnUpload() != null) getOnUpload().get(searchField.getText());
-                bd.hide();
-            }).size(40f).padRight(5f);
+            tableSearch.add(copyButton).size(40f).padRight(5f);
+            tableSearch.add(uploadButton).size(40f).padRight(5f);
             tableSearch.add("@context.search");
             tableSearch.marginBottom(10f);
             tableSearch.add(searchField).growX();
@@ -160,13 +174,10 @@ public class SearchFunction {
         filters.add(checkFields).left().padTop(5).get().changed(SearchFunction::search);
         checkFields.setChecked(true);
 
+        // first search
         search();
         bd.buttons.button("@back", Icon.left, bd::hide).size(210f, 64f);
     }
-
-    private static Cons<String> onUpload = null;
-    private static int selectedLine = -1;
-
 
     public static void setText(String text) {
         searchField.setText(text);
@@ -174,13 +185,8 @@ public class SearchFunction {
     }
 
     public static void show() {
-        show(null);
-    }
-
-    public static void show(Cons<String> onUpload) {
         bd.show();
         searchField.getScene().setKeyboardFocus(searchField);
-        SearchFunction.onUpload = onUpload;
         search();
     }
 
@@ -192,26 +198,36 @@ public class SearchFunction {
 
         resultsShow.clear();
         ButtonInfo.resetActualId();
+
         boolean success = displaySearch(toSearch, "");
+
         if (!success && path != null) {
             int i = toSearch.lastIndexOf(".") + 1;
-            if (i < toSearch.length()) displaySearch(path, toSearch.substring(i));
-            else displaySearch(path, "");
+            String filter = i < toSearch.length() ? toSearch.substring(i) : "";
+
+            displaySearch(path, filter);
         }
     }
 
-    private static boolean displaySearch(String toSearch, String starts) {
+    /**
+     * Display the results filtered with { @code starts}
+     * @param text The string to be searched
+     * @param starts Filter only the value that start with this
+     * @return if found anything
+     */
+    private static boolean displaySearch(String text, String starts) {
+        // Reset the contents
         infoContent.clearChildren();
         infoDocsButton.visible = false;
 
+        // Obtain the value of the text
         Object obj;
-        ArrayList<String> availableKeys;
+        ArrayList<String> objProperties = new ArrayList<>();
         try {
-            obj = execute(toSearch);
-            NativeArray rawKeys = (NativeArray) execute("Object.keys(" + toSearch + ")");
-            availableKeys = new ArrayList<>();
+            obj = execute(text);
+            NativeArray rawKeys = (NativeArray) execute("Object.keys(" + text + ")");
             for (Object key : rawKeys) {
-                availableKeys.add((String) key);
+                objProperties.add((String) key);
             }
         } catch (RuntimeException e) {
             infoContent.add("@context.not-found");
@@ -228,35 +244,36 @@ public class SearchFunction {
             }
 
             // Making Overload buttons
-            createButtonsFromClass(toSearch, starts, cl, availableKeys);
+            createButtonsFromClass(text, starts, cl, objProperties);
 
             infoContent.add(Core.bundle.format("context.search-function.info-class", cl.getName()));
-            infoDocsButton.visible = changeUrl(cl.getName(),null);
+            infoDocsButton.visible = changeUrl(cl.getName(), null);
             return true;
         }
 
-        // If is a Instance of a class
+        // If is an Instance of a class
         if (obj instanceof NativeJavaObject nObj) {
             Class<?> cl = nObj.unwrap().getClass();
 
             // Making Overload buttons
-            createButtonsFromClass(toSearch, starts, cl, availableKeys);
+            createButtonsFromClass(text, starts, cl, objProperties);
 
             // Info management
             infoContent.add(Core.bundle.format("context.search-function.info-instance", cl.getName()));
-            infoDocsButton.visible = changeUrl(cl.getName(),null);
+            infoDocsButton.visible = changeUrl(cl.getName(), null);
             return true;
         }
 
         // If is a Method
         if (obj instanceof NativeJavaMethod nObj) {
 
-            String methodName = toSearch.substring(toSearch.lastIndexOf(".") + 1);
+            String methodName = text.substring(text.lastIndexOf(".") + 1);
             try {
-                if (!toSearch.contains(".")) throw new ClassNotFoundException();
-                String clString = toSearch.substring(0, toSearch.lastIndexOf("."));
+                if (!text.contains(".")) throw new ClassNotFoundException();
+                String clString = text.substring(0, text.lastIndexOf("."));
                 Class<?> cl;
                 Object retObj = execute(clString);
+
                 if (retObj instanceof NativeJavaClass njc) {
                     cl = (Class<?>) njc.unwrap();
                 } else if (retObj instanceof NativeJavaObject njo) {
@@ -265,38 +282,16 @@ public class SearchFunction {
                     throw new ClassNotFoundException();
                 }
                 ArrayList<Method> met = new ArrayList<>();
-                for (Method method : cl.getMethods()) {
-                    if (!method.getName().equals(methodName)) continue;
-                    met.add(method);
-                }
+                for (Method method : cl.getMethods())
+                    if (method.getName().equals(methodName)) met.add(method);
+
                 if (met.isEmpty()) throw new ClassNotFoundException();
 
                 // Making Overload buttons
                 for (Method method : met) {
-                    StringBuilder args = new StringBuilder();
-
-                    args.append("(");
-                    ArrayList<Parameter> params = new ArrayList<>(Arrays.asList(method.getParameters()));
-                    ArrayList<Class<?>> types = new ArrayList<>(Arrays.asList(method.getParameterTypes()));
-                    for (int i = 0; i < params.size(); i++) {
-                        Parameter param = params.get(i);
-                        Class<?> type = types.get(i);
-                        if (param.isNamePresent())
-                            args.append(param.getName()).append(": ").append(type.getSimpleName());
-                        else args.append(type.getSimpleName());
-                        if (i < params.size() - 1) args.append(", ");
-                    }
-                    args.append(")");
-
-                    String writeString = args.toString();
-                    String show = MessageFormat.format("{0}{1}: {2}",
-                            method.getName(),
-                            writeString,
-                            method.getReturnType().getSimpleName()
-                    );
-
+                    String show = methodToString(method);
                     ButtonInfo btn = new ButtonInfo(show);
-                    btn.setPath(toSearch + writeString);
+                    btn.setPath(text + show.substring(show.indexOf('('), show.indexOf(')')));
                     btn.setType(ButtonInfoType.NULL);
                     btn.addTo(resultsShow, () -> {
                         searchField.setText(btn.getPath());
@@ -306,14 +301,14 @@ public class SearchFunction {
 
                 // Info management
                 infoContent.add(Core.bundle.format("context.search-function.info-method", methodName, cl.getName(), met.size()));
-                infoDocsButton.visible = changeUrl(cl.getName(),"method-summary");
+                infoDocsButton.visible = changeUrl(cl.getName(), "method-summary");
             } catch (Exception e) {
                 String[] values = nObj.toString().split("\n");
                 infoContent.add(Core.bundle.format("context.search-function.info-method", methodName, "Not found", values.length));
                 for (String value : values) {
                     resultsShow.row();
                     ButtonInfo btn = new ButtonInfo(value.trim());
-                    btn.setPath(toSearch + value.trim());
+                    btn.setPath(text + value.trim());
                     btn.setType(ButtonInfoType.NULL);
                     btn.addTo(resultsShow, () -> {
                         searchField.setText(btn.getPath());
@@ -328,27 +323,25 @@ public class SearchFunction {
         if (obj instanceof NativeObject) {
             // ! To change
             infoContent.add("@context.search-function.info-object");
-            for (String key : availableKeys) {
+            for (String key : objProperties) {
                 ButtonInfo btn = new ButtonInfo(key);
-                btn.setPath(toSearch + "." + key);
+                btn.setPath(text + "." + key);
                 btn.addTo(resultsShow, () -> {
                     searchField.setText(btn.getPath());
                     search();
                 });
             }
-            if (availableKeys.isEmpty()) resultsShow.add(LABEL_EMPTY);
+            if (objProperties.isEmpty()) resultsShow.add(LABEL_EMPTY);
             return true;
         }
 
         if (obj instanceof String || obj instanceof Number || obj instanceof Boolean) {
-            String value;
             if (obj instanceof String str) {
                 str = str.replaceAll("[\n\t]", " ");
                 if (str.length() > 20) str = str.substring(0, 17) + "...";
-                value = "Value: " + str;
-            } else {
-                value = "Value: " + obj;
+                obj = str;
             }
+            String value = "Value: " + obj;
             infoContent.add(Core.bundle.format("context.search-function.info-primitive", obj.getClass().getSimpleName(), value));
             return true;
         }
@@ -365,45 +358,50 @@ public class SearchFunction {
             args.append(entry.getKey()).append(",");
             objValues.add(entry.getValue());
         }
-        Function fn = s.context.compileFunction(s.scope, "function("+ args +"){return "+code+"}", "SearchTerms", 1);
-        return fn.call(s.context, s.scope, objThis == null? s.scope : objThis, objValues.toArray());
+        Function fn = s.context.compileFunction(s.scope, "function(" + args + "){return " + code + "}", "SearchTerms", 1);
+        return fn.call(s.context, s.scope, objThis == null ? s.scope : objThis, objValues.toArray());
     }
 
     private static void createButtonsFromClass(String toSearch, String starts, Class<?> cl, List<String> availableKeys) {
-        Set<String> knownStrings = new HashSet<>();
-        ArrayList<ButtonInfo> buttonsToAdd = new ArrayList<>();
         Method[] allMethods = cl.getMethods();
+        ArrayList<ButtonInfo> buttonsToAdd = new ArrayList<>();
+        Set<String> knownStrings = new HashSet<>();
+        Set<String> namesAdded = new HashSet<>();
+
         for (Method method : allMethods) {
-            knownStrings.add(method.getName());
-            boolean isAvailable = availableKeys.contains(method.getName());
-            if (checkOnlyAvailable.isChecked()
-                    && !availableKeys.contains(method.getName())
-                    || !method.getName().startsWith(starts)
+            String methodName = method.getName();
+            boolean isAvailable = availableKeys.contains(methodName);
+            knownStrings.add(methodName);
+
+            if (checkOnlyAvailable.isChecked() && !isAvailable
+                    || !methodName.startsWith(starts)
                     || !checkMethods.isChecked()
-                    || buttonsToAdd.stream().anyMatch(btn -> btn.text.equals(method.getName()))
+                    || namesAdded.contains(methodName)
             ) continue;
 
-            ButtonInfo btn = new ButtonInfo(method.getName());
-            btn.setType(ButtonInfoType.METHOD);
-            if (isAvailable) btn.setPath(toSearch + "." + method.getName());
 
+            ButtonInfo btn = new ButtonInfo(methodName);
+            btn.setType(ButtonInfoType.METHOD);
+            if (isAvailable) btn.setPath(toSearch + "." + methodName);
             buttonsToAdd.add(btn);
+            namesAdded.add(methodName);
         }
         Field[] allFields = cl.getFields();
         for (Field field : allFields) {
-            knownStrings.add(field.getName());
-            boolean isAvailable = availableKeys.contains(field.getName());
+            String fieldName = field.getName();
+            boolean isAvailable = availableKeys.contains(fieldName);
+            knownStrings.add(fieldName);
             if (checkOnlyAvailable.isChecked() && !isAvailable
-                    || !field.getName().startsWith(starts)
+                    || !fieldName.startsWith(starts)
                     || !checkFields.isChecked()
-                    || buttonsToAdd.stream().anyMatch(btn -> btn.text.equals(field.getName()))
+                    || namesAdded.contains(fieldName)
             ) continue;
 
-            ButtonInfo btn = new ButtonInfo(field.getName());
+            ButtonInfo btn = new ButtonInfo(fieldName);
             btn.setType(ButtonInfoType.FIELD);
-            if (isAvailable) btn.setPath(toSearch + "." + field.getName());
-
+            if (isAvailable) btn.setPath(toSearch + "." + fieldName);
             buttonsToAdd.add(btn);
+            namesAdded.add(fieldName);
         }
 
         availableKeys.stream().filter(key -> !knownStrings.contains(key) && key.startsWith(starts))
@@ -427,6 +425,25 @@ public class SearchFunction {
         return onUpload;
     }
 
+    protected static String methodToString(Method method) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(method.getName());
+        sb.append("(");
+        ArrayList<Parameter> params = new ArrayList<>(Arrays.asList(method.getParameters()));
+        ArrayList<Class<?>> types = new ArrayList<>(Arrays.asList(method.getParameterTypes()));
+        for (int i = 0; i < params.size(); i++) {
+            Parameter param = params.get(i);
+            Class<?> type = types.get(i);
+            if (param.isNamePresent())
+                sb.append(param.getName()).append(": ").append(type.getSimpleName());
+            else sb.append(type.getSimpleName());
+            if (i < params.size() - 1) sb.append(", ");
+        }
+        sb.append("): ");
+        sb.append(method.getReturnType().getSimpleName());
+        return sb.toString();
+    }
+
     /**
      * Change the URL to the documentation
      * @param path The path to the class
@@ -434,30 +451,24 @@ public class SearchFunction {
      * @return if this link exist
      */
     private static boolean changeUrl(String path, String elementId) {
-        if(path.startsWith("mindustry.gen")) return false;
+        if (path.startsWith("mindustry.gen")) return false;
 
-        if(path.startsWith("java")) infoDocsUrl = "https://docs.oracle.com/en/java/javase/16/docs/api/java.base/";
+        if (path.startsWith("java")) infoDocsUrl = "https://docs.oracle.com/en/java/javase/16/docs/api/java.base/";
         else infoDocsUrl = "https://mindustrygame.github.io/docs/";
 
         infoDocsUrl += path.replace(".", "/") + ".html";
-        if(elementId != null) infoDocsUrl += "#" + elementId;
+        if (elementId != null) infoDocsUrl += "#" + elementId;
 
         return true;
     }
 
     public static void setOnUpload(Cons<String> onUpload) {
         SearchFunction.onUpload = onUpload;
+        uploadButton.visible = onUpload != null;
     }
 
     public static void setObjThis(Object objThis) {
         SearchFunction.objThis = rhino.Context.toObject(objThis, Vars.mods.getScripts().scope);
-    }
-
-    public static void addVariable(String name, Object obj) {
-        arguments.put(name, obj);
-    }
-    public static void addVariable(Map<String, Object> variableMap) {
-        arguments.putAll(variableMap);
     }
 
     private static void onClose() {

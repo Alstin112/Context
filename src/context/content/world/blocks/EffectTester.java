@@ -45,6 +45,46 @@ public class EffectTester extends CodableTester {
         /** Desktop file to be synchronized with the build */
         private Fi synchronizedFile = null;
 
+        /** Update the runnable that runs the code */
+        public void updateRunFn() {
+            if (code.trim().isEmpty()) return;
+
+            Scripts scripts = Vars.mods.getScripts();
+            try {
+                String codeStr = "function(e){" + Utils.applySafeRunning(code) + "\n}";
+                Function fn = scripts.context.compileFunction(scripts.scope, codeStr, "EffectTester", 1);
+                effect.renderer = e -> {
+                    setError();
+                    try {
+                        fn.call(scripts.context, scripts.scope, rhino.Context.toObject(this, scripts.scope), new Object[]{e, this});
+                    } catch (Exception e1) {
+                        setError(e1.getMessage(), false);
+                    }
+                };
+
+                setError();
+            } catch (Throwable e) {
+                setError(e.getMessage(), true);
+            }
+        }
+
+        /** Change the code without updating the Runnable */
+        private void setCodeSilent(String code) {
+            if (!Objects.equals(code, this.code)) lastEditByPlayer = false;
+            this.code = code;
+        }
+
+        /** Change the code updating the runnable  */
+        public void setCode(String code) {
+            setCodeSilent(code);
+            updateRunFn();
+        }
+
+        /** Get the code of the runnable*/
+        public String getCode() {
+            return code;
+        }
+
         @Override
         public void buildConfiguration(Table table) {
             table.button(Icon.pencil, Styles.cleari, () -> {
@@ -85,14 +125,14 @@ public class EffectTester extends CodableTester {
                 deselect();
             }).size(40f);
             table.button(Icon.settings, Styles.cleari, () -> {
-                ConfigurationDialog cd = new ConfigurationDialog("@editmessage");
+                ConfigurationDialog cd = new ConfigurationDialog("@context.testers.configuration");
 
-                cd.addTitle("@block.context-effect-tester.category-effect");
+                cd.addSeparator("@block.context-effect-tester.category-effect");
                 cd.addReadOnlyField("@block.context-effect-tester.id", effect.id + "");
                 cd.addFloatInput("lifetime", "@block.context-effect-tester.lifetime", effect.lifetime);
                 cd.addFloatInput("clip", "@block.context-effect-tester.clip-size", effect.clip);
 
-                cd.addTitle("@block.context-effect-tester.category-code");
+                cd.addSeparator("@block.context-effect-tester.category-code");
                 cd.addBooleanInput("safe", "@context.testers.safe-running", safeRunning);
 
                 cd.setOnClose(values -> {
@@ -114,48 +154,10 @@ public class EffectTester extends CodableTester {
             }).size(40f);
         }
 
-
         @Override
         public boolean isEmpty() {
             return code.isEmpty();
         }
-
-        public void updateRunFn() {
-            if (code.trim().isEmpty()) return;
-
-            Scripts scripts = Vars.mods.getScripts();
-            try {
-                String codeStr = "function(e){" + Utils.applySafeRunning(code) + "\n}";
-                Function fn = scripts.context.compileFunction(scripts.scope, codeStr, "EffectTester", 1);
-                effect.renderer = e -> {
-                    setError();
-                    try {
-                        fn.call(scripts.context, scripts.scope, rhino.Context.toObject(this, scripts.scope), new Object[]{e, this});
-                    } catch (Exception e1) {
-                        setError(e1.getMessage(), false);
-                    }
-                };
-
-                setError();
-            } catch (Throwable e) {
-                setError(e.getMessage(), true);
-            }
-        }
-
-        private void setCodeSilent(String code) {
-            if (!Objects.equals(code, this.code)) lastEditByPlayer = false;
-            this.code = code;
-        }
-
-        public void setCode(String code) {
-            setCodeSilent(code);
-            updateRunFn();
-        }
-
-        public String getCode() {
-            return code;
-        }
-
         @Override
         public Object config() {
             int v = 0;

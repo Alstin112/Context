@@ -34,70 +34,73 @@ public abstract class CodableTester extends BaseContextBlock {
 
     public class CodableTesterBuild extends BaseContextBuild {
 
-        /**
-         * Controls if the building will replace the player's file
-         */
+        /** Controls if the building will replace the player's file */
         protected boolean lastEditByPlayer = false;
 
-        /**
-         * Controls if the player's file will replace the building
-         */
+        /** Controls if the player's file will replace the building */
         protected long lastTimeFileModified = 0;
-        /** Control the color of the block (expected to be visual only)*/
-        protected TestersModes mode = TestersModes.EMPTY;
         /** Message to appear when get error */
         private String errorMessage = "";
         /** Determinate if the build can run while the error is showing */
         protected boolean compileError = false;
         /** Every function will be added some try-catch */
         protected boolean safeRunning = false;
-        /** Internal storage of the build (mean to be used ingame) */
+        /** Internal storage of the build (mean to be used in-game), they will not store if copy or leave the world */
         private ObjectMap<String, Object> storage = new ObjectMap<>();
 
-
+        /** If there is no code inside this build */
         public boolean isEmpty() {
             return false;
         }
 
-        public void updateMode() {
-            if (isEmpty()) mode = TestersModes.EMPTY;
-            else if (!getError().isEmpty()) {
-                if (compileError) mode = TestersModes.COMPILER_ERROR;
-                else mode = TestersModes.RUNTIME_ERROR;
-            } else mode = TestersModes.ACTIVE;
-        }
 
-
+        /** Clean the error */
         protected void setError() {
             errorMessage = "";
             compileError = false;
         }
+
+        /**
+         * Set the block as having error
+         * @param message Error message
+         * @param compileError If the error is a compile error
+         */
         protected void setError(String message, boolean compileError) {
             errorMessage = message;
             this.compileError = compileError;
         }
+
+        /** Get the error message */
         public String getError() {
             return errorMessage;
         }
 
+        // Only mean to be used inside the game.
+        /** Get the storage of the build */
         public ObjectMap<String, Object> getStorage() {
             return storage;
         }
+        /** Set the storage of the build */
         public void setStorage(ObjectMap<String, Object> storage) {
             this.storage = storage;
         }
-        public TestersModes getMode() {
-            return mode;
-        }
 
+        /** Get the mode of this block (mean to be visual only)*/
+        public TestersModes getMode() {
+            if (isEmpty()) return TestersModes.EMPTY;
+            if (getError().isEmpty()) return TestersModes.ACTIVE;
+            if (compileError) return TestersModes.COMPILER_ERROR;
+            return TestersModes.RUNTIME_ERROR;
+        }
         @Override
         public void drawSelect() {
+            TestersModes mode = getMode();
             if (mode != TestersModes.COMPILER_ERROR && mode != TestersModes.RUNTIME_ERROR) return;
             if (errorMessage.isEmpty()) return;
 
             Font font = Fonts.outline;
             GlyphLayout l = Pools.obtain(GlyphLayout.class, GlyphLayout::new);
-            boolean ints = font.usesIntegerPositions();
+            boolean intPos = font.usesIntegerPositions();
             font.getData().setScale(1 / 4f / Scl.scl(1f));
             font.setUseIntegerPositions(false);
 
@@ -109,7 +112,7 @@ public abstract class CodableTester extends BaseContextBlock {
             Draw.color();
             font.setColor(Color.scarlet);
             font.draw(errorMessage, x - l.width / 2f, y - tilesize / 2f - offset, 90f, Align.left, true);
-            font.setUseIntegerPositions(ints);
+            font.setUseIntegerPositions(intPos);
 
             font.getData().setScale(1f);
 
@@ -117,9 +120,8 @@ public abstract class CodableTester extends BaseContextBlock {
         }
         @Override
         public void draw() {
-            updateMode();
             Draw.rect(region, x, y);
-            Draw.color(mode.getColor(Time.time));
+            Draw.color(getMode().getColor(Time.time));
             Draw.rect(topRegion, x, y);
             Draw.reset();
         }

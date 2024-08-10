@@ -11,6 +11,7 @@ import java.util.Map;
 
 public class ConfigurationDialog {
 
+    /** Verifies if the txt is a valid float */
     static final TextField.TextFieldValidator FloatValidator = txt -> {
         try {
             Float.parseFloat(txt);
@@ -19,10 +20,12 @@ public class ConfigurationDialog {
             return false;
         }
     };
-
+    /** Verifies if the character is a valid float character to add*/
     static final TextField.TextFieldFilter FloatFilter = (textField, c) -> textField.getText().length() < 10 && (c >= '0' && c <= '9' || c == '.');
     public final BaseDialog bd;
+    /** Runs when closing the configurations */
     private Cons<Map<String, Object>> onClose;
+    /** The stored values */
     private Map<String, Object> values = new HashMap<>();
 
     public ConfigurationDialog(String title) {
@@ -35,11 +38,22 @@ public class ConfigurationDialog {
         }).size(210f, 64f);
     }
 
-    public void addTitle(String title) {
-        bd.cont.add(title).fontScale(1.3f).pad(30f).colspan(2).row();
+    /**
+     * Creates a separator between configurations
+     * @param separator the text to be between
+     */
+    public void addSeparator(String separator) {
+        bd.cont.add(separator).fontScale(1.3f).pad(30f).colspan(2).row();
     }
-    public TextField addReadOnlyField(String label, String defaultValue) {
-        TextField tf = new TextField(defaultValue);
+
+    /**
+     * add a Text Field to the configuration page
+     * @param label the text that will display on side of the TextField
+     * @param value the value of the TextField
+     * @return the TextField
+     */
+    public TextField addReadOnlyField(String label, String value) {
+        TextField tf = new TextField(value);
         tf.setDisabled(true);
         bd.cont.add(label);
         bd.cont.add(tf).row();
@@ -63,7 +77,7 @@ public class ConfigurationDialog {
     }
 
     /**
-     * Adds a Float Field to the configuration page.
+     * Adds a FloatField to the configuration page.
      * @param name the name of the configuration to refer later.
      * @param label the text that will display on side of the TextField.
      * @param defaultValue the default value of the TextField.
