@@ -26,7 +26,7 @@ public class ConfigurationDialog {
     /** Runs when closing the configurations */
     private Cons<Map<String, Object>> onClose;
     /** The stored values */
-    private Map<String, Object> values = new HashMap<>();
+    private final Map<String, Object> values = new HashMap<>();
 
     public ConfigurationDialog(String title) {
         bd = new BaseDialog(title);
@@ -48,16 +48,15 @@ public class ConfigurationDialog {
 
     /**
      * add a Text Field to the configuration page
+     *
      * @param label the text that will display on side of the TextField
      * @param value the value of the TextField
-     * @return the TextField
      */
-    public TextField addReadOnlyField(String label, String value) {
+    public void addReadOnlyField(String label, String value) {
         TextField tf = new TextField(value);
         tf.setDisabled(true);
         bd.cont.add(label);
         bd.cont.add(tf).row();
-        return tf;
     }
 
     /**
@@ -65,25 +64,23 @@ public class ConfigurationDialog {
      * @param name the name of the configuration to refer later.
      * @param label the text that will display on side of the TextField.
      * @param defaultValue the default value of the TextField.
-     * @return the TextField
      */
-    public TextField addTextField(String name, String label, String defaultValue) {
+    public void addTextField(String name, String label, String defaultValue) {
         TextField tf = new TextField(defaultValue);
         tf.changed(() -> values.put(name, tf.getText()));
         values.put(name, defaultValue);
         bd.cont.add(label);
         bd.cont.add(tf).row();
-        return tf;
     }
 
     /**
      * Adds a FloatField to the configuration page.
-     * @param name the name of the configuration to refer later.
-     * @param label the text that will display on side of the TextField.
+     *
+     * @param name         the name of the configuration to refer later.
+     * @param label        the text that will display on side of the TextField.
      * @param defaultValue the default value of the TextField.
-     * @return the TextField
      */
-    public TextField addFloatInput(String name, String label, Float defaultValue) {
+    public void addFloatInput(String name, String label, Float defaultValue) {
         TextField tf = new TextField(defaultValue.toString());
         tf.setValidator(FloatValidator);
         tf.setFilter(FloatFilter);
@@ -91,24 +88,22 @@ public class ConfigurationDialog {
         values.put(name, defaultValue);
         bd.cont.add(label);
         bd.cont.add(tf).row();
-        return tf;
     }
 
     /**
      * Adds a Boolean Field to the configuration page.
-     * @param name the name of the configuration to refer later.
-     * @param label the text that will display on side of the CheckBox.
+     *
+     * @param name         the name of the configuration to refer later.
+     * @param label        the text that will display on side of the CheckBox.
      * @param defaultValue the default value of the CheckBox.
-     * @return the CheckBox
      */
-    public CheckBox addBooleanInput(String name, String label, Boolean defaultValue) {
+    public void addBooleanInput(String name, String label, Boolean defaultValue) {
         CheckBox cb = new CheckBox("");
         cb.setChecked(defaultValue);
         cb.changed(() -> values.put(name, cb.isChecked()));
         values.put(name, defaultValue);
         bd.cont.add(label);
         bd.cont.add(cb).row();
-        return cb;
     }
 
     public void show() {

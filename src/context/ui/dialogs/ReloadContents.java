@@ -29,6 +29,8 @@ public class ReloadContents {
     public static void show() {
         dialog.show();
     }
+
+    @SuppressWarnings("java:S3011")
     private static void reload() {
         Vars.content = new ContentLoader();
         Vars.content.createBaseContent();
@@ -36,7 +38,7 @@ public class ReloadContents {
 
         Vars.mods.eachEnabled(mod -> {
             if (!mod.isJava()) return;
-            ClassLoader loader = null;
+            ClassLoader loader;
             try {
                 loader = Vars.platform.loadJar(mod.file, Vars.mods.mainLoader());
                 Class<?> main = Class.forName(mod.meta.main, true, loader);
@@ -55,10 +57,10 @@ public class ReloadContents {
         // Refresh the catalog
         if(Vars.state.isPlaying()) {
             try {
-                PlacementFragment bfrag = Vars.ui.hudfrag.blockfrag;
-                Method rebuild = bfrag.getClass().getDeclaredMethod("rebuild");
+                PlacementFragment bFrag = Vars.ui.hudfrag.blockfrag;
+                Method rebuild = bFrag.getClass().getDeclaredMethod("rebuild");
                 rebuild.setAccessible(true);
-                rebuild.invoke(bfrag);
+                rebuild.invoke(bFrag);
             } catch (Exception e) {
                 Log.err(Core.bundle.get("context.reload-contents.error-reload-category"));
             }

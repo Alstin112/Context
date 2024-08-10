@@ -10,7 +10,7 @@ public class Utils {
     private Utils() {
     }
 
-    static Random randomGenerator = new Random();
+    static final Random randomGenerator = new Random();
     public static String applySafeRunning(String code) {
         String randomVariable = randomGenerator.nextInt(1000000) + "";
         return MessageFormat.format("let _{0}=this;{1}",
@@ -47,11 +47,4 @@ public class Utils {
         return resultCode;
     }
 
-    public static byte compactifyBoolean(boolean ...values) {
-        byte result = 0;
-        for (int i = 0; i < values.length; i++) {
-            if(values[i]) result |= 1 << i;
-        }
-        return result;
-    }
 }

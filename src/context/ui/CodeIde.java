@@ -12,36 +12,51 @@ import mindustry.gen.Tex;
 import mindustry.ui.dialogs.BaseDialog;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class CodeIde {
     // Main Fields
-    public Seq<TabArea> tabs = new Seq<>();
-    public BaseDialog dialog;
+    public final Seq<TabArea> tabs = new Seq<>();
+    private BaseDialog dialog;
     private Table tabArea;
     private Table tabGroup;
     private Cons<CodeIde> onSave = ide -> {
     };
     private TabArea selectedTab = null;
 
-    private boolean tabGroupHidded = false;
+    private boolean tabGroupHidden = false;
 
-    // Blinking Tab Area
-    public float blinkDuration = 0.5f;
-    public long lastBlink = 0;
-    public Color BlinkColor = Color.white.cpy();
+    // <editor-fold desc="Blinking Tab Area">
+    private float blinkDuration = 0.5f;
+    private long lastBlink = 0;
+    private Color blinkColor = Color.white.cpy();
 
-    // Custom Buttons
-    public ArrayList<Button> customButtons = new ArrayList<>();
+    public void blinkArea(Color color, float duration) {
+        this.blinkColor = color;
+        this.blinkDuration = duration;
+        this.lastBlink = System.currentTimeMillis();
+    }
+    // </editor-fold>
+
+    // <editor-fold desc="Custom Buttons">
+    public final List<Button> customButtons = new ArrayList<>();
+
+    public <T extends Button> T addButton(T button) {
+        customButtons.add(button);
+        generateButtons();
+        return button;
+    }
+    // </editor-fold>
 
     // Max Byte Output
     public int maxByteOutput = -1;
 
     public CodeIde() {
-        createChilds();
+        createChildren();
         generateBase();
     }
 
-    private void createChilds() {
+    private void createChildren() {
         dialog = new BaseDialog("@editmessage");
         dialog.setFillParent(true);
         dialog.cont.row();
@@ -51,7 +66,7 @@ public class CodeIde {
             public void draw() {
                 if (System.currentTimeMillis() - lastBlink < blinkDuration * 1000) {
                     float t = (System.currentTimeMillis() - lastBlink) / (blinkDuration * 1000);
-                    this.setBackground(((ScaledNinePatchDrawable) Tex.button).tint(Tmp.c1.set(BlinkColor).lerp(Color.white, t)));
+                    this.setBackground(((ScaledNinePatchDrawable) Tex.button).tint(Tmp.c1.set(blinkColor).lerp(Color.white, t)));
                 }
                 super.draw();
             }
@@ -65,7 +80,7 @@ public class CodeIde {
         dialog.cont.clear();
 
         dialog.cont.add(tabArea).grow().colspan(6);
-        if(!tabGroupHidded) dialog.cont.add(tabGroup).grow();
+        if(!tabGroupHidden) dialog.cont.add(tabGroup).grow();
 
         // adding the first tab
         generateButtons();
@@ -76,7 +91,7 @@ public class CodeIde {
     }
 
     public void hideTabs(boolean hide) {
-        tabGroupHidded = hide;
+        tabGroupHidden = hide;
         generateBase();
     }
 
@@ -95,17 +110,10 @@ public class CodeIde {
     public void addTab(TabArea tab) {
         tab.setIde(this);
         tabs.add(tab);
-        tabGroup.button("Tab " + tabs.size, () -> {
-            selectTab(tabs.size - 1);
-        }).growX().top().height(60f);
+        tabGroup.button("Tab " + tabs.size, () -> selectTab(tabs.size - 1)).growX().top().height(60f);
         if (tabs.size == 1) this.selectTab(0);
     }
 
-    public <T extends Button> T addButton(T button) {
-        customButtons.add(button);
-        generateButtons();
-        return button;
-    }
 
     public void selectTab(int index) {
         if (index < 0 || index >= tabs.size) return;
@@ -140,11 +148,6 @@ public class CodeIde {
         return true;
     }
 
-    public void blinkArea(Color color, float duration) {
-        this.BlinkColor = color;
-        this.blinkDuration = duration;
-        this.lastBlink = System.currentTimeMillis();
-    }
 
     public void showError(String message) {
         BaseDialog d = new BaseDialog("@error");
