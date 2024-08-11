@@ -55,7 +55,7 @@ public abstract class CodableTester extends BaseContextBlock {
 
 
         /** Clean the error */
-        protected void setError() {
+        public void setError() {
             errorMessage = "";
             compileError = false;
         }
@@ -65,7 +65,7 @@ public abstract class CodableTester extends BaseContextBlock {
          * @param message Error message
          * @param compileError If the error is a compile error
          */
-        protected void setError(String message, boolean compileError) {
+        public void setError(String message, boolean compileError) {
             errorMessage = message;
             this.compileError = compileError;
         }
