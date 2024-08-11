@@ -3,6 +3,7 @@ package context.content.world.blocks;
 import arc.files.Fi;
 import arc.scene.ui.ImageButton;
 import arc.scene.ui.layout.Table;
+import arc.util.Nullable;
 import arc.util.io.Reads;
 import arc.util.io.Writes;
 import context.Utils;
@@ -47,8 +48,7 @@ public class DrawTester extends CodableTester {
         /** The code to be executed */
         private String code = "";
         /** The function to be executed to draw*/
-        private Runnable drawFn = () -> {
-        };
+        private @Nullable Runnable drawFn = null;
 
         /** Self-explanatory */
         private boolean invisibleWhenDraw = false;
@@ -59,7 +59,10 @@ public class DrawTester extends CodableTester {
 
         /** Update the runnable that runs the code */
         public void updateDrawFn() {
-            if (code.trim().isEmpty()) return;
+            if (code.trim().isEmpty()) {
+                drawFn = null;
+                return;
+            }
 
             Scripts scripts = Vars.mods.getScripts();
             try {
@@ -71,6 +74,7 @@ public class DrawTester extends CodableTester {
             } catch (Exception e) {
                 setError(e.getMessage(), true);
             }
+
         }
 
         /** Change the code of this block without updating DrawFn */
@@ -173,9 +177,9 @@ public class DrawTester extends CodableTester {
             }
             if (!invisibleWhenDraw) super.draw();
 
-            setError();
             try {
-                drawFn.run();
+                if(drawFn != null) drawFn.run();
+                setError();
             } catch (Exception e) {
                 setError(e.getMessage(), false);
             }

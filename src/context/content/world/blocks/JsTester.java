@@ -2,6 +2,7 @@ package context.content.world.blocks;
 
 import arc.files.Fi;
 import arc.scene.ui.layout.Table;
+import arc.util.Nullable;
 import arc.util.io.Reads;
 import arc.util.io.Writes;
 import context.Utils;
@@ -39,13 +40,13 @@ public class JsTester extends CodableTester {
         /** The code to be executed */
         private String code = "";
         /** The function to be executed */
-        private Runnable runFn = () -> {};
+        private @Nullable Runnable runFn = null;
         /** File that the building will replace when code changes*/
         private Fi synchronizedFile = null;
         /** Run the block */
         public void run() {
             try {
-                this.runFn.run();
+                if(runFn != null) runFn.run();
                 setError();
             } catch (Exception e) {
                 setError(e.getMessage(), false);
@@ -53,7 +54,10 @@ public class JsTester extends CodableTester {
         }
         /** Update the runnable that runs the code */
         public void updateRunFn() {
-            if (code.trim().isEmpty()) return;
+            if (code.trim().isEmpty()) {
+                runFn = null;
+                return;
+            }
 
             ArrayList<Object> argsObj = new ArrayList<>();
 

@@ -47,7 +47,10 @@ public class EffectTester extends CodableTester {
 
         /** Update the runnable that runs the code */
         public void updateRunFn() {
-            if (code.trim().isEmpty()) return;
+            if (code.trim().isEmpty()) {
+                effect.renderer = e -> {};
+                return;
+            }
 
             Scripts scripts = Vars.mods.getScripts();
             try {
