@@ -7,8 +7,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v4.1.7
       - name: Setup Path
-        uses: actions/checkout@v4.1.7
         run: |
           echo "${ANDROID_HOME}/build-tools/34.0.0" >> $GITHUB_PATH
       - name: Setup Java JDK 17
