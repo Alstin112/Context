@@ -31,7 +31,7 @@ public class ReloadContents {
     }
 
     @SuppressWarnings("java:S3011")
-    private static void reload() {
+    public static void reload() {
         Vars.content = new ContentLoader();
         Vars.content.createBaseContent();
         Vars.content.loadColors();

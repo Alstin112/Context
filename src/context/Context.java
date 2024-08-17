@@ -1,8 +1,15 @@
 package context;
 
+import arc.util.Log;
 import context.content.world.blocks.*;
 import context.ui.dialogs.ReloadContents;
+import mindustry.Vars;
 import mindustry.mod.Mod;
+import mindustry.mod.Mods;
+
+import java.lang.reflect.Field;
+
+import static mindustry.Vars.platform;
 
 @SuppressWarnings("unused")
 public class Context extends Mod {
@@ -23,7 +30,38 @@ public class Context extends Mod {
      * can be used inside the world, but the blocks will be needed to be replaced with new from your inventory.
      */
     public void reloadContents() {
-        ReloadContents.show();
+        if (Vars.state.isMenu()) {
+            try {
+                ReloadContents.reload();
+            } catch (NoClassDefFoundError e) {
+                if (forceLoadMod("context")) {
+                    ReloadContents.reload();
+                    Log.info("Mods reloaded!");
+                } else {
+                    Log.err("Error while reloading the mods");
+                }
+
+            }
+        } else ReloadContents.show();
     }
 
+    @SuppressWarnings("java:S3011")
+    public boolean forceLoadMod(String modName) {
+        Mods.LoadedMod mod = Vars.mods.getMod(modName);
+        if (mod == null) return false;
+        ClassLoader loader;
+        try {
+            loader = platform.loadJar(mod.file, Vars.mods.mainLoader());
+            Class<?> main = Class.forName(mod.meta.main, true, loader);
+            Vars.content.setCurrentMod(mod);
+            Mod mainMod = (Mod) main.getDeclaredConstructor().newInstance();
+            Vars.content.setCurrentMod(null);
+            Field fieldMain = mod.getClass().getDeclaredField("main");
+            fieldMain.setAccessible(true);
+            fieldMain.set(mod, mainMod);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }
