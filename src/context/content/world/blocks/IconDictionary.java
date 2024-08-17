@@ -6,6 +6,7 @@ import arc.math.geom.Vec2;
 import arc.scene.ui.Button;
 import arc.scene.ui.ImageButton;
 import arc.scene.ui.ScrollPane;
+import arc.scene.ui.TextButton;
 import arc.scene.ui.layout.Table;
 import arc.util.Align;
 import mindustry.gen.Icon;
@@ -16,18 +17,30 @@ import mindustry.ui.Styles;
 import java.util.HashSet;
 import java.util.Scanner;
 
+import static mindustry.Vars.headless;
 import static mindustry.Vars.tilesize;
 
 public class IconDictionary extends BaseContextBlock {
     private static CharSequence iconsChar;
     private static CharSequence iconsImg;
     private static CharSequence iconsMind;
+    private static TextButton.TextButtonStyle tStyle;
 
     public IconDictionary(String name) {
         super(name);
     }
 
+    private static void loadStyles() {
+        tStyle = new TextButton.TextButtonStyle(Styles.cleart);
+        tStyle.down = Styles.flatDown;
+        tStyle.up = Styles.black6;
+        tStyle.over = Styles.flatOver;
+        tStyle.disabled = Styles.black8;
+    }
+
     public static void reloadCharIcons() {
+        if(headless) return;
+
         StringBuilder sbChar = new StringBuilder();
         StringBuilder sbImg = new StringBuilder();
         StringBuilder sbMind = new StringBuilder();
@@ -38,8 +51,11 @@ public class IconDictionary extends BaseContextBlock {
             while(scan.hasNextLine()){
                 String line = scan.nextLine();
                 String[] split = line.split("=");
-                String character = split[0];
+                String texture = split[1].split("\\|")[1];
 
+                if(!Core.atlas.has(texture)) continue;
+
+                String character = split[0];
                 icons.add(Integer.parseInt(character));
             }
         }
@@ -67,15 +83,15 @@ public class IconDictionary extends BaseContextBlock {
 
         @Override
         public void buildConfiguration(Table table) {
+            if(headless) return;
+
             if (iconsChar == null) reloadCharIcons();
             Table catButtons = new Table();
 
-            // TODO - when the game start, the char icons don't appear, needs to press f8 to reload (idk why)
-            // TODO - This categories isn't precise, but i don't feel that is a good way picking manually for each ascii character
-            // TODO - When opened some char, the menu gets offset, and idk how fix.
+            if(tStyle == null) loadStyles();
 
             // Char icons button
-            Button cButton = new ImageButton(Fonts.getGlyph(Fonts.def, '\ue242'), Styles.cleari);
+            Button cButton = new TextButton("\ue242", tStyle);
             // Mindustry icons button
             Button mButton = new ImageButton(Fonts.getGlyph(Fonts.def, '\uf869'), Styles.cleari);
             // Image icons button
@@ -85,68 +101,53 @@ public class IconDictionary extends BaseContextBlock {
             cButton.clicked(() -> {
                 table.clearChildren();
                 Table optionsTab = new Table();
-                for (int i = 0; i < iconsChar.length(); i++) {
-                    char c = iconsChar.charAt(i);
-                    optionsTab.button(Fonts.getGlyph(Fonts.def, iconsChar.charAt(i)), Styles.cleari, () -> selectedIcon(table, c)).size(40f);
-                    if (i % 4 == 3) optionsTab.row();
-                }
-                for (int i = 0; i < 3 - (3 + iconsChar.length()) % 4; i++) {
-                    optionsTab.add(new Table(Styles.black6)).size(40f);
-                }
-                ScrollPane pane = table.pane(optionsTab).size(180f, 160f).get();
-                pane.setScrollingDisabledX(true);
-                pane.setOverscroll(false, false);
-                table.row();
+                createOptionsTable(table, iconsChar);
                 table.add(catButtons);
                 cButton.setDisabled(true);
                 mButton.setDisabled(false);
                 iButton.setDisabled(false);
+                table.pack();
             });
             mButton.clicked(() -> {
                 table.clearChildren();
                 Table optionsTab = new Table();
-                for (int i = 0; i < iconsMind.length(); i++) {
-                    char c = iconsMind.charAt(i);
-                    optionsTab.button(Fonts.getGlyph(Fonts.def, iconsMind.charAt(i)), Styles.cleari, () -> selectedIcon(table, c)).size(40f);
-                    if (i % 4 == 3) optionsTab.row();
-                }
-                for (int i = 0; i < 3 - (3 + iconsMind.length()) % 4; i++) {
-                    optionsTab.add(new Table(Styles.black6)).size(40f);
-                }
-                ScrollPane pane = table.pane(optionsTab).size(180f, 160f).get();
-                pane.setScrollingDisabledX(true);
-                pane.setOverscroll(false, false);
-                table.row();
+                createOptionsTable(table, iconsMind);
                 table.add(catButtons);
                 cButton.setDisabled(false);
                 mButton.setDisabled(true);
                 iButton.setDisabled(false);
+                table.pack();
             });
             iButton.clicked(() -> {
                 table.clearChildren();
-                Table optionsTab = new Table();
-                for (int i = 0; i < iconsImg.length(); i++) {
-                    char c = iconsImg.charAt(i);
-                    optionsTab.button(Fonts.getGlyph(Fonts.def, iconsImg.charAt(i)), Styles.cleari, () -> selectedIcon(table, c)).size(40f);
-                    if (i % 4 == 3) optionsTab.row();
-                }
-                for (int i = 0; i < 3 - (3 + iconsImg.length()) % 4; i++) {
-                    optionsTab.add(new Table(Styles.black6)).size(40f);
-                }
-                ScrollPane pane = table.pane(optionsTab).size(180f, 160f).get();
-                pane.setScrollingDisabledX(true);
-                pane.setOverscroll(false, false);
-                table.row();
+                createOptionsTable(table, iconsImg);
                 table.add(catButtons);
                 cButton.setDisabled(false);
                 mButton.setDisabled(false);
                 iButton.setDisabled(true);
+                table.pack();
             });
 
             catButtons.add(cButton).size(60f, 40f);
             catButtons.add(mButton).size(60f, 40f);
             catButtons.add(iButton).size(60f, 40f);
             table.add(catButtons);
+        }
+
+        public void createOptionsTable(Table table, CharSequence text) {
+            Table optionsTab = new Table();
+            for (int i = 0; i < text.length(); i++) {
+                char c = text.charAt(i);
+                optionsTab.button(Fonts.getGlyph(Fonts.def, text.charAt(i)), Styles.cleari, () -> selectedIcon(table, c)).size(40f);
+                if (i % 4 == 3) optionsTab.row();
+            }
+            for (int i = 0; i < 3 - (3 + text.length()) % 4; i++) {
+                optionsTab.add(new Table(Styles.black6)).size(40f);
+            }
+            ScrollPane pane = table.pane(optionsTab).size(180f, 160f).get();
+            pane.setScrollingDisabledX(true);
+            pane.setOverscroll(false, false);
+            table.row();
         }
 
         /**
@@ -164,10 +165,11 @@ public class IconDictionary extends BaseContextBlock {
             copyCharTab.button(Icon.fileText, Styles.defaulti, () -> Core.app.setClipboardText(c + "")).size(40f);
 
             String code = Iconc.codes.findKey(c);
+            String codeSmall = code + "Small";
             if (code != null && Icon.icons.containsKey(code)) {
                 copyCharTab.button(Icon.icons.get(code), Styles.defaulti, () -> Core.app.setClipboardText("Icon." + code)).size(40f);
-                if (Icon.icons.containsKey(code + "Small")) {
-                    copyCharTab.button(Icon.icons.get(code + "Small"), Styles.defaulti, () -> Core.app.setClipboardText("Icon." + code + "Small")).size(40f);
+                if (Icon.icons.containsKey(codeSmall)) {
+                    copyCharTab.button(Icon.icons.get(codeSmall), Styles.defaulti, () -> Core.app.setClipboardText("Icon." + codeSmall)).size(40f);
                 }
             }
             table.add(copyCharTab).growX();
