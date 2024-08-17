@@ -1,5 +1,9 @@
 # Context
 
+[`Mindustry`](https://github.com/Anuken/Mindustry) mod, made by `Alstin112`, with help of `Flintyx`.
+
+## Description
+
 This mod was created to assist modders and is a remake of the original mod
 [Testers](https://github.com/sk7725/Testers) by **sk7725**, featuring some
 improvements and new features.
@@ -8,7 +12,7 @@ This is my first mod, and the while the graphical parts are not the best,
 I would love to learn how to use Mindutry's UI better. if you guys have some
 tutorial or guides, please share them with my discord: `Alstin112`.
 
-Some concepts and textures were created with help of @FlinTyX.
+Some concepts and textures were created with help of FlinTyX.
 ## Features
 
 ### Blocks
