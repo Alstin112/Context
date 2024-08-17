@@ -70,7 +70,7 @@ public class IconDictionary extends BaseContextBlock {
             else if (icons.contains(i)) sbMind.append(c);
             else sbChar.append(c);
         }
-        sbImg.append('\u26A0');
+        sbImg.append('⚠');
 
 
         iconsChar = sbChar.toString();
