@@ -1,5 +1,7 @@
 package context;
 
+import arc.files.Fi;
+import arc.struct.Seq;
 import arc.util.Log;
 import context.content.world.blocks.*;
 import context.ui.BetterIdeDialog;
@@ -7,7 +9,9 @@ import context.ui.dialogs.ReloadContents;
 import mindustry.Vars;
 import mindustry.mod.Mod;
 import mindustry.mod.Mods;
+import mindustry.mod.Mods.*;
 import mindustry.mod.Scripts;
+import rhino.*;
 
 import java.lang.reflect.Field;
 
@@ -31,6 +35,7 @@ public class Context extends Mod {
 
         Scripts scripts = Vars.mods.getScripts();
         scripts.scope.put("BetterIdeDialog", scripts.scope,  BetterIdeDialog.class);
+        scripts.scope.put("ContextMod", scripts.scope, this);
         new DrawTester("draw-tester");
         new JsTester("js-tester");
         new EffectTester("effect-tester");
@@ -42,7 +47,7 @@ public class Context extends Mod {
      * WIP
      * Reloads the contents of the all the mods. This can crash your game, but to reload the content you will need restart the game anyway
      * soo it's not a big deal.
-     * The intention of this command for now is to use in console `Vars.mods.getMod("context").main.reloadContents()`.
+     * The intention of this command for now is to use in console `ContextMod.reloadContents()`.
      * can be used inside the world, but the blocks will be needed to be replaced with new from your inventory.
      */
     public void reloadContents() {
@@ -59,6 +64,48 @@ public class Context extends Mod {
 
             }
         } else ReloadContents.show();
+    }
+
+    /**
+     * Loads the classes of a certain java mod onto the console, so that they are accessible like vanilla.
+		 */
+    public void loadToConsole(LoadedMod mod, String moduleName) {
+        if (!mod.isJava()) {
+            Log.err("The mod @(@) is not a java mod", mod.meta.displayName, mod.name);
+            return;
+        }
+
+        Fi root = mod.root.child(moduleName);
+
+        if (!root.exists()) {
+            Log.err("Root of @(@) was not found", mod.meta.displayName, mod.name);
+            return;
+        }
+
+        Seq<Fi> possiblePackages = new Seq<>();
+        Seq<Fi> temp = Seq.with(root);
+
+        while (!temp.isEmpty()) {
+            Fi cur = temp.pop();
+            possiblePackages.addUnique(cur);
+            for (Fi file : cur.list()) {
+                if (file.isDirectory()) {
+                    temp.add(file);
+                }
+            }
+        }
+
+        possiblePackages.each(file -> {
+            StringBuilder packageName = new StringBuilder(file.path().replaceAll("/", "."));
+            packageName.deleteCharAt(packageName.length() - 1);
+
+            Vars.mods.getScripts().runConsole("importPackage(ContextMod.getPackage(\"" + packageName + "\"))");
+        });
+    }
+    public NativeJavaPackage getPackage(String name) {
+        NativeJavaPackage loadingPackage = new NativeJavaPackage(name, Vars.mods.mainLoader());
+        loadingPackage.setParentScope(Vars.mods.getScripts().scope);
+        return loadingPackage;
     }
 
     @SuppressWarnings("java:S3011")

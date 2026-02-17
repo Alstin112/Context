@@ -1,6 +1,6 @@
 # Context
 
-[`Mindustry`](https://github.com/Anuken/Mindustry) mod, made by `Alstin112`, with help of `Flintyx`.
+[`Mindustry`](https://github.com/Anuken/Mindustry) mod, made by `Alstin112`, with help of `Flintyx` and `Liz Aurora`.
 
 ## Description
 
@@ -13,6 +13,8 @@ I would love to learn how to use Mindutry's UI better. if you guys have some
 tutorial or guides, please share them with my discord: `Alstin112`.
 
 Some concepts and textures were created with help of FlinTyX.
+
+Some concepts were created by Liz.
 ## Features
 
 ### Blocks
@@ -36,3 +38,7 @@ real files on your desktop, allowing you to program Mindustry code using VS Code
 
 A search bar acts as a "mini console" that lets you search for classes, fields,
 and methods, with an option to navigate directly to the documentation.
+
+### Java
+Adds the `ContextMod.loadToConsole(LoadedMod, String)` method to the builtin console. Allowing java mods 
+to have their classes be accessed via the console.

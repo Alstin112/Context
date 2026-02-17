@@ -3,7 +3,7 @@ name: "context"
 author: "Alstin112 and Flintyx"
 description: "this mod add more command blocks to help mod-creators, inspired in \"testers\" by [royal]sk7725[]"
 
-minGameVersion: 154
+minGameVersion: 155.2
 version: "v1.2.1"
 
 java: true
