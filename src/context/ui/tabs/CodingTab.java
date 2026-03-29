@@ -23,6 +23,7 @@ public class CodingTab extends BasicTab {
     public Table main = new Table();
     public Table lineNumbers = new Table();
     public AdvancedTextArea codingArea;
+    public boolean syncs = true;
 
     private Fi synchronizedFile = null;
     private Cons<Fi> onSynchronize = fi -> {
@@ -33,44 +34,51 @@ public class CodingTab extends BasicTab {
     private String lineNumberCache = "";
 
     public CodingTab(String name) {
+        this(name, true);
+    }
+
+    public CodingTab(String name, boolean syncs) {
         super(name);
-        tab.clearChildren();
-        fileSyncButton = new ImageButton(Icon.fileTextFillSmall, new ImageButton.ImageButtonStyle(Styles.clearNonei));
-        fileSyncButton.clicked(() -> {
-            if (synchronizedFile != null) {
-                synchronizeFile();
-                return;
-            }
-            Vars.platform.showFileChooser(true, "js", fi -> {
-                if (!fi.exists()) {
-                    try {
-                        fi.writeString("");
-                    } catch (Exception e) {
-                        Log.err("Failed to create file: " + e.getMessage());
-                        return;
-                    }
-                }
-                String content = fi.readString();
-                if (this.codingArea.getText().isEmpty() || content.equals(this.codingArea.getText().replaceAll("\\r", ""))) {
-                    this.synchronizeFile(fi, false);
+        this.syncs = syncs;
+        if (syncs) {
+            tab.clearChildren();
+            fileSyncButton = new ImageButton(Icon.fileTextFillSmall, new ImageButton.ImageButtonStyle(Styles.clearNonei));
+            fileSyncButton.clicked(() -> {
+                if (synchronizedFile != null) {
+                    synchronizeFile();
                     return;
                 }
-                new FileSyncTypeDialog(true, true, type -> {
-                    if (type == FileSyncTypeDialog.SyncType.CANCEL) return;
-                    if (type == FileSyncTypeDialog.SyncType.DELETE) codingArea.setText("");
+                Vars.platform.showFileChooser(true, "js", fi -> {
+                    if (!fi.exists()) {
+                        try {
+                            fi.writeString("");
+                        } catch (Exception e) {
+                            Log.err("Failed to create file: " + e.getMessage());
+                            return;
+                        }
+                    }
+                    String content = fi.readString();
+                    if (this.codingArea.getText().isEmpty() || content.equals(this.codingArea.getText().replaceAll("\\r", ""))) {
+                        this.synchronizeFile(fi, false);
+                        return;
+                    }
+                    new FileSyncTypeDialog(true, true, type -> {
+                        if (type == FileSyncTypeDialog.SyncType.CANCEL) return;
+                        if (type == FileSyncTypeDialog.SyncType.DELETE) codingArea.setText("");
 
-                    synchronizeFile(fi, type != FileSyncTypeDialog.SyncType.DOWNLOAD);
+                        synchronizeFile(fi, type != FileSyncTypeDialog.SyncType.DOWNLOAD);
 
+                    });
                 });
             });
-        });
-        fileSyncButton.addListener(new Tooltip(tab -> {
-            tab.setBackground(Styles.black8);
-            tab.add(new Label(() -> synchronizedFile == null ? "Synchronize file" : "Synchronized to: " + synchronizedFile.path()))
-                    .get().setStyle(Styles.outlineLabel);
-        }));
-        tab.add(fileSyncButton).size(20).pad(20).left();
-        tabLabel = tab.add(name).color(Color.lightGray).growX().get();
+            fileSyncButton.addListener(new Tooltip(tab -> {
+                tab.setBackground(Styles.black8);
+                tab.add(new Label(() -> synchronizedFile == null ? "Synchronize file" : "Synchronized to: " + synchronizedFile.path()))
+                  .get().setStyle(Styles.outlineLabel);
+            }));
+            tab.add(fileSyncButton).size(20).pad(20).left();
+            tabLabel = tab.add(name).color(Color.lightGray).growX().get();
+        }
 
         Table contentTable = new Table();
 
@@ -128,6 +136,7 @@ public class CodingTab extends BasicTab {
     @Override
     public void UpdateStyle(BetterIdeDialog.BetterIdeDialogStyle style, boolean selected) {
         super.UpdateStyle(style, selected);
+        if (!syncs) return;
         ImageButton.ImageButtonStyle defstyle = fileSyncButton.getStyle();
         if (synchronizedFile != null && verifyFile == null) {
             if (selected) {
