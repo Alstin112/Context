@@ -7,6 +7,7 @@ import context.content.world.blocks.*;
 import context.ui.BetterIdeDialog;
 import context.ui.dialogs.ReloadContents;
 import mindustry.Vars;
+import mindustry.core.*;
 import mindustry.mod.Mod;
 import mindustry.mod.Mods;
 import mindustry.mod.Mods.*;
@@ -39,6 +40,7 @@ public class Context extends Mod {
         new DrawTester("draw-tester");
         new JsTester("js-tester");
         new EffectTester("effect-tester");
+        new UITester("interface-tester");
         new IconDictionary("icon-dictionary");
         new FunctionAnalyzer("function-analyzer");
     }
