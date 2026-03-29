@@ -125,11 +125,11 @@ public class ShaderTester extends CodableTester {
 
 			ideDialog.MaxByteOutput = 65000; // i don't wanna count, so leaving 500 or so as a buffer should allow for everything else that might need that space
 
-			CodingTab vertTab = new CodingTab("shader.vert", false);
+			CodingTab vertTab = new CodingTab("shader.vert", false, "glsl");
 			vertTab.setText(vertexCode);
-			CodingTab fragTab = new CodingTab("shader.frag", false);
+			CodingTab fragTab = new CodingTab("shader.frag", false,"glsl");
 			fragTab.setText(fragmentCode);
-			CodingTab bindTab = new CodingTab("apply.js", false);
+			CodingTab bindTab = new CodingTab("apply.js", false, "js");
 			bindTab.setText(bindCode);
 
 			ideDialog.createTab(vertTab);

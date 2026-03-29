@@ -15,7 +15,7 @@ import arc.scene.style.Drawable;
 import arc.scene.style.TextureRegionDrawable;
 import arc.scene.ui.ScrollPane;
 import arc.scene.ui.TextArea;
-import arc.struct.FloatSeq;
+import arc.struct.*;
 import arc.util.Align;
 import arc.util.Nullable;
 import mindustry.gen.Tex;
@@ -33,6 +33,7 @@ public class AdvancedTextArea extends TextArea {
     public KeybindManager keybindManager = new KeybindManager();
     private static final TextureRegionDrawable underlineTex = (TextureRegionDrawable) Tex.whiteui;
     public ScrollPane parentScroll = null;
+    public String highlightingType = "js";
 
     public Cons<String> onUpdateDisplay;
 
@@ -485,13 +486,37 @@ public class AdvancedTextArea extends TextArea {
                 COLOR_NUMBER = Color.valueOf("bd93f9"),
                 COLOR_SPECIAL = Color.valueOf("8be9fd");
 
-        private static final Pattern PATTERN = Pattern.compile(
-                "(?<COMMENT>//.*|/\\*[\\s\\S]*?\\*/)" +
-                        "|(?<STRING>\"(?:[^\"\\\\]|\\\\.)*\"|'(?:[^'\\\\]|\\\\.)*'|`(?:[^`\\\\]|\\\\.)*`)" +
-                        "|(?<NUMBER>\\b\\d+(\\.\\d+)?\\b)" +
-                        "|(?<KEYWORD>\\b(?:function|var|let|const|if|else|for|while|return|switch|case|break|continue|new|try|catch|class|extends|import|export|default)\\b)" +
-                        "|(?<SPECIAL>\\b(?:true|false|null|undefined|this|super)\\b)"
+        private static final ObjectMap<String, Pattern> patterns = ObjectMap.of(
+          "js", Pattern.compile(
+            "(?<COMMENT>//.*|/\\*[\\s\\S]*?\\*/)" +
+              "|(?<STRING>\"(?:[^\"\\\\]|\\\\.)*\"|'(?:[^'\\\\]|\\\\.)*'|`(?:[^`\\\\]|\\\\.)*`)" +
+              "|(?<NUMBER>\\b\\d+(\\.\\d+)?\\b)" +
+              "|(?<KEYWORD>\\b(?:function|var|let|const|if|else|for|while|return|switch|case|break|continue|new|try|catch|class|extends|import|export|default)\\b)" +
+              "|(?<SPECIAL>\\b(?:true|false|null|undefined|this|super)\\b)"
+          ),
+//          "glsl", Pattern.compile(
+//            "(?<COMMENT>//.*|/\\*[\\s\\S]*?\\*/)" +
+//              "|(?<STRING>\"(?:[^\"\\\\]|\\\\.)*\"|'(?:[^'\\\\]|\\\\.)*'|`(?:[^`\\\\]|\\\\.)*`)" +
+//              "|(?<NUMBER>\\b\\d+(\\.\\d+)?\\b)" +
+//              "|(?<KEYWORD>\\b(?:function|int|float|if|else|for|while|return|switch|case|break|continue|new|try|catch|class|main|uniform|varying)\\b)" +
+//              "|(?<SPECIAL>\\b(?:true|false|vec2|vec3|vec4|main)\\b)"
+//          )
+          "glsl", Pattern.compile(
+            "(?<COMMENT>//.*|/\\*[\\s\\S]*?\\*/)" +
+              "|(?<STRING>\\b(?:if|for)\\b)" +
+              "|(?<NUMBER>\\b\\d+(\\.\\d+)?\\b)" +
+              "|(?<KEYWORD>\\b(?:function|void|discard|uniform|varying|attribute|const|define)\\b)" +
+              "|(?<SPECIAL>\\b(?:true|false|vec2|vec3|vec4|int|float|sampler2D|main)\\b)"
+          )
         );
+
+//        private static final Pattern PATTERN = Pattern.compile(
+//                "(?<COMMENT>//.*|/\\*[\\s\\S]*?\\*/)" +
+//                        "|(?<STRING>\"(?:[^\"\\\\]|\\\\.)*\"|'(?:[^'\\\\]|\\\\.)*'|`(?:[^`\\\\]|\\\\.)*`)" +
+//                        "|(?<NUMBER>\\b\\d+(\\.\\d+)?\\b)" +
+//                        "|(?<KEYWORD>\\b(?:function|var|let|const|if|else|for|while|return|switch|case|break|continue|new|try|catch|class|extends|import|export|default)\\b)" +
+//                        "|(?<SPECIAL>\\b(?:true|false|null|undefined|this|super)\\b)"
+//        );
 
         public Lexer() {
         }
@@ -509,7 +534,8 @@ public class AdvancedTextArea extends TextArea {
 
             if (text == null || text.isEmpty()) return;
 
-            Matcher matcher = PATTERN.matcher(text);
+//            Matcher matcher = PATTERN.matcher(text);
+            Matcher matcher = patterns.get(textArea.highlightingType).matcher(text);
 
             // 3. Iterar sobre todos os tokens encontrados
             while (matcher.find()) {

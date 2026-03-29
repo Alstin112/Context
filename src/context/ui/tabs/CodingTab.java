@@ -23,7 +23,7 @@ public class CodingTab extends BasicTab {
     public Table main = new Table();
     public Table lineNumbers = new Table();
     public AdvancedTextArea codingArea;
-    public boolean syncs = true;
+    public boolean syncs;
 
     private Fi synchronizedFile = null;
     private Cons<Fi> onSynchronize = fi -> {
@@ -34,10 +34,10 @@ public class CodingTab extends BasicTab {
     private String lineNumberCache = "";
 
     public CodingTab(String name) {
-        this(name, true);
+        this(name, true, "js");
     }
 
-    public CodingTab(String name, boolean syncs) {
+    public CodingTab(String name, boolean syncs, String format) {
         super(name);
         this.syncs = syncs;
         if (syncs) {
@@ -83,6 +83,7 @@ public class CodingTab extends BasicTab {
         Table contentTable = new Table();
 
         codingArea = new AdvancedTextArea("");
+        codingArea.highlightingType = format;
         lineNumbers.add(new Label(() -> lineNumberCache))
                 .style(Styles.monoLabel)
                 .padTop(0)
