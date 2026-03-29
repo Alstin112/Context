@@ -18,8 +18,6 @@ import mindustry.ui.*;
 import mindustry.ui.dialogs.*;
 import rhino.*;
 
-import java.io.*;
-
 import static mindustry.Vars.*;
 
 public class UITester extends CodableTester {
@@ -126,6 +124,10 @@ public class UITester extends CodableTester {
 			return new Object[]{code, safeRunning, dialog};
 		}
 
+		@Override public boolean isEmpty() {
+			return code.isEmpty();
+		}
+
 		@Override
 		public void read(Reads read, byte revision) {
 			super.read(read, revision);
@@ -150,6 +152,7 @@ public class UITester extends CodableTester {
 					stageBackground = Core.scene.getStyle(Dialog.DialogStyle.class).stageBackground;
 				}});
 				dialog.closeOnBack();
+				if (mobile) dialog.addCloseButton();
 				dialog.show();
 				return;
 			}

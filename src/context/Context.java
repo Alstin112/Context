@@ -1,22 +1,19 @@
 package context;
 
-import arc.files.Fi;
-import arc.struct.Seq;
-import arc.util.Log;
+import arc.files.*;
+import arc.struct.*;
+import arc.util.*;
 import context.content.world.blocks.*;
-import context.ui.BetterIdeDialog;
-import context.ui.dialogs.ReloadContents;
-import mindustry.Vars;
-import mindustry.core.*;
-import mindustry.mod.Mod;
-import mindustry.mod.Mods;
+import context.ui.*;
+import context.ui.dialogs.*;
+import mindustry.*;
+import mindustry.mod.*;
 import mindustry.mod.Mods.*;
-import mindustry.mod.Scripts;
 import rhino.*;
 
-import java.lang.reflect.Field;
+import java.lang.reflect.*;
 
-import static mindustry.Vars.platform;
+import static mindustry.Vars.*;
 
 @SuppressWarnings("unused")
 public class Context extends Mod {
@@ -41,6 +38,7 @@ public class Context extends Mod {
         new JsTester("js-tester");
         new EffectTester("effect-tester");
         new UITester("interface-tester");
+        new ShaderTester("shader-tester");
         new IconDictionary("icon-dictionary");
         new FunctionAnalyzer("function-analyzer");
     }
