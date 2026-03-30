@@ -39,8 +39,6 @@ public class ShaderTester extends CodableTester {
 
 		@Override
 		public void buildConfiguration(Table table) {
-			if (isEmpty()) initShader();
-
 			table.button(Icon.pencil, Styles.cleari, this::show).size(40f);
 			table.button(Icon.settings, Styles.cleari, () -> {
 				ConfigurationDialog cd = new ConfigurationDialog("@context.testers.configuration");
@@ -95,6 +93,10 @@ public class ShaderTester extends CodableTester {
 			fragmentCode = tree.get("shaders/screenspace.frag").readString();
 		}
 
+		@Override public boolean isEmpty() {
+			return vertexCode.isEmpty() && fragmentCode.isEmpty();
+		}
+
 		@Override
 		public void read(Reads read, byte revision) {
 			super.read(read, revision);
@@ -133,6 +135,8 @@ public class ShaderTester extends CodableTester {
 		}
 
 		public void show() {
+			if (isEmpty()) initShader();
+
 			BetterIdeDialog ideDialog = new BetterIdeDialog();
 
 			ideDialog.MaxByteOutput = 65000; // i don't wanna count, so leaving 500 or so as a buffer should allow for everything else that might need that space
