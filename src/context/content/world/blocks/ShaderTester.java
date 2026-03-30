@@ -5,6 +5,7 @@ import arc.graphics.gl.*;
 import arc.scene.ui.*;
 import arc.scene.ui.layout.*;
 import arc.util.*;
+import arc.util.io.*;
 import context.*;
 import context.ui.*;
 import context.ui.dialogs.*;
@@ -31,14 +32,14 @@ public class ShaderTester extends CodableTester {
 	}
 
 	public class ShaderTesterBuild extends CodableTesterBuild {
-		private String vertexCode, fragmentCode, bindCode = "";
+		private String vertexCode = "", fragmentCode = "", bindCode = "";
 
 		private Shader currentShader;
 		private Runnable apply;
 
 		@Override
 		public void buildConfiguration(Table table) {
-			if (vertexCode == null || fragmentCode == null) initShader();
+			if (isEmpty()) initShader();
 
 			table.button(Icon.pencil, Styles.cleari, this::show).size(40f);
 			table.button(Icon.settings, Styles.cleari, () -> {
@@ -92,6 +93,17 @@ public class ShaderTester extends CodableTester {
 		public void initShader() {
 			vertexCode = tree.get("shaders/screenspace.vert").readString();
 			fragmentCode = tree.get("shaders/screenspace.frag").readString();
+		}
+
+		@Override
+		public void read(Reads read, byte revision) {
+			super.read(read, revision);
+
+			vertexCode = read.str();
+			fragmentCode = read.str();
+			bindCode = read.str();
+
+			safeRunning = read.bool();
 		}
 
 		public void run() {
@@ -150,6 +162,17 @@ public class ShaderTester extends CodableTester {
 			ideDialog.show();
 
 			deselect();
+		}
+
+		@Override
+		public void write(Writes write) {
+			super.write(write);
+
+			write.str(vertexCode);
+			write.str(fragmentCode);
+			write.str(bindCode);
+
+			write.bool(safeRunning);
 		}
 	}
 }
