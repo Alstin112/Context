@@ -14,7 +14,7 @@ tutorial or guides, please share them with my discord: `Alstin112`.
 
 Some concepts and textures were created with help of FlinTyX.
 
-Some concepts were created by Liz.
+Some features were created by Liz.
 ## Features
 
 ### Blocks
@@ -24,6 +24,8 @@ Adds **5** new sandbox blocks to the game, with many more planned.
 - **JS Tester**:  A block that opens a GUI for testing JavaScript code.
 - **Draw Tester**: A block that executes your JavaScript code every frame.
 - **Effect Tester**: A block for creating custom effects.
+- **UI Tester**: A block for creating dialogs or tile config ui.
+- **Shader Tester**: A block for creating shaders.
 - **Icon Dictionary**: A dictionary block that holds all the icons in the game
 (ASCII icons, Mindustry content icons, and Mindustry image icons).
 - **Function Analyzer**: A block to help understand the game's interpolation
