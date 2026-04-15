@@ -2,13 +2,14 @@ package context.content.world.blocks;
 
 import arc.files.Fi;
 import arc.scene.ui.layout.Table;
+import arc.util.Strings;
 import arc.util.io.Reads;
 import arc.util.io.Writes;
 import context.Utils;
-import context.ui.CodeIde;
+import context.ui.BetterIdeDialog;
 import context.ui.dialogs.ConfigurationDialog;
 import context.ui.dialogs.FileSyncTypeDialog;
-import context.ui.elements.CodingTabArea;
+import context.ui.tabs.CodingTab;
 import mindustry.Vars;
 import mindustry.entities.Effect;
 import mindustry.gen.Icon;
@@ -58,6 +59,8 @@ public class EffectTester extends CodableTester {
             if(safeRunning) textCode = "function(e){" + Utils.applySafeRunning(code) + " \n}";
             else textCode = "function(e){"  + code + " \n}";
 
+            scripts.scope.put("tester", scripts.scope, this);
+
             try {
                 Function fn = scripts.context.compileFunction(scripts.scope, textCode, "EffectTester", 1);
                 effect.renderer = e -> {
@@ -95,24 +98,24 @@ public class EffectTester extends CodableTester {
         @Override
         public void buildConfiguration(Table table) {
             table.button(Icon.pencil, Styles.cleari, () -> {
-                CodeIde ide = new CodeIde();
-                CodingTabArea tab = new CodingTabArea();
-                ide.addTab(tab);
-                ide.maxByteOutput = 65515; // (65535 = Max bytes size) - (19 = build properties) - (1 = build version)
-                tab.setCode(getCode());
-                tab.setObjThis(this);
+                BetterIdeDialog ideDialog = new BetterIdeDialog();
 
-                ide.setOnSave(codeIde -> {
-                    this.configure(tab.getCode());
+                ideDialog.MaxByteOutput = 65515; // (65535 = Max bytes size) - (19 = build properties) - (1 = build version)
+
+                CodingTab codingTab = new CodingTab("code.js");
+                codingTab.setText(code);
+
+                ideDialog.createTab(codingTab);
+                ideDialog.onSave = () -> {
+                    this.configure(codingTab.getText());
                     if (synchronizedFile != null) lastTimeFileModified = synchronizedFile.lastModified();
                     lastEditByPlayer = true;
-                });
-                tab.setOnSynchronize(file -> this.synchronizedFile = file);
-                ide.hideTabs(true);
-
+                };
+                codingTab.setOnSynchronize (fi -> synchronizedFile = fi);
+                ideDialog.setFooter(() -> Strings.format("Used Bytes: @/@",3+codingTab.getText().length(), ideDialog.MaxByteOutput));
 
                 if (synchronizedFile == null) {
-                    ide.show();
+                    ideDialog.show();
                     deselect();
                     return;
                 }
@@ -123,12 +126,12 @@ public class EffectTester extends CodableTester {
                 if (FileChanged && CodeChanged) {
                     new FileSyncTypeDialog(false, true, type -> {
                         if (type == FileSyncTypeDialog.SyncType.CANCEL) return;
-                        tab.setSync(synchronizedFile, type == FileSyncTypeDialog.SyncType.UPLOAD);
+                        codingTab.synchronizeFile(synchronizedFile, type == FileSyncTypeDialog.SyncType.UPLOAD);
                     });
                 } else {
-                    tab.setSync(synchronizedFile, false);
+                    codingTab.synchronizeFile(synchronizedFile, false);
                 }
-                ide.show();
+                ideDialog.show();
                 deselect();
             }).size(40f);
             table.button(Icon.settings, Styles.cleari, () -> {

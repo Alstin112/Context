@@ -234,6 +234,8 @@ public class SearchFunction {
             return false;
         }
 
+        
+
         // If is a class
         if (obj instanceof NativeJavaClass nObj) {
             Class<?> cl;

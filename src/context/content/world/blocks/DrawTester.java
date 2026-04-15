@@ -4,14 +4,15 @@ import arc.files.Fi;
 import arc.scene.ui.ImageButton;
 import arc.scene.ui.layout.Table;
 import arc.util.Nullable;
+import arc.util.Strings;
 import arc.util.io.Reads;
 import arc.util.io.Writes;
 import context.Utils;
 import context.content.TestersModes;
-import context.ui.CodeIde;
+import context.ui.BetterIdeDialog;
 import context.ui.dialogs.ConfigurationDialog;
 import context.ui.dialogs.FileSyncTypeDialog;
-import context.ui.elements.CodingTabArea;
+import context.ui.tabs.CodingTab;
 import mindustry.Vars;
 import mindustry.gen.Icon;
 import mindustry.mod.Scripts;
@@ -108,24 +109,24 @@ public class DrawTester extends CodableTester {
         public void buildConfiguration(Table table) {
             // Open the code editor
             table.button(Icon.pencil, Styles.cleari, () -> {
-                CodeIde ide = new CodeIde();
-                CodingTabArea tab = new CodingTabArea();
+                BetterIdeDialog ideDialog = new BetterIdeDialog();
 
-                ide.addTab(tab);
-                ide.hideTabs(true);
-                ide.maxByteOutput = 65522; // (65535 = Max bytes size) - (12 = build properties) - (1 = build version)
-                tab.setCode(code);
-                tab.setObjThis(this);
+                ideDialog.MaxByteOutput = 65522; // (65535 = Max bytes size) - (12 = build properties) - (1 = build version)
 
-                ide.setOnSave(codeIde -> {
-                    this.configure(tab.getCode());
+                CodingTab codingTab = new CodingTab("code.js");
+                codingTab.setText(code);
+
+                ideDialog.createTab(codingTab);
+                ideDialog.onSave = () -> {
+                    this.configure(codingTab.getText());
                     if (synchronizedFile != null) lastTimeFileModified = synchronizedFile.lastModified();
                     lastEditByPlayer = true;
-                });
-                tab.setOnSynchronize(file -> this.synchronizedFile = file);
+                };
+                codingTab.setOnSynchronize (fi -> synchronizedFile = fi);
+                ideDialog.setFooter(() -> Strings.format("Used Bytes: @/@",3+codingTab.getText().length(), ideDialog.MaxByteOutput));
 
                 if (synchronizedFile == null) {
-                    ide.show();
+                    ideDialog.show();
                     deselect();
                     return;
                 }
@@ -136,13 +137,13 @@ public class DrawTester extends CodableTester {
                 if (FileChanged && !LocalPlayerChanged) {
                     new FileSyncTypeDialog(false, true, type -> {
                         if (type == FileSyncTypeDialog.SyncType.CANCEL) return;
-                        tab.setSync(synchronizedFile, type == FileSyncTypeDialog.SyncType.UPLOAD);
+                        codingTab.synchronizeFile(synchronizedFile, type == FileSyncTypeDialog.SyncType.UPLOAD);
                     });
                 } else {
-                    tab.setSync(synchronizedFile, false);
+                    codingTab.synchronizeFile(synchronizedFile, false);
                 }
 
-                ide.show();
+                ideDialog.show();
                 deselect();
             }).size(40f);
             // Open the build settings

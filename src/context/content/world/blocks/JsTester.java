@@ -3,13 +3,14 @@ package context.content.world.blocks;
 import arc.files.Fi;
 import arc.scene.ui.layout.Table;
 import arc.util.Nullable;
+import arc.util.Strings;
 import arc.util.io.Reads;
 import arc.util.io.Writes;
 import context.Utils;
-import context.ui.CodeIde;
+import context.ui.BetterIdeDialog;
 import context.ui.dialogs.ConfigurationDialog;
 import context.ui.dialogs.FileSyncTypeDialog;
-import context.ui.elements.CodingTabArea;
+import context.ui.tabs.CodingTab;
 import mindustry.Vars;
 import mindustry.gen.Icon;
 import mindustry.mod.Scripts;
@@ -43,6 +44,9 @@ public class JsTester extends CodableTester {
         private @Nullable Runnable runFn = null;
         /** File that the building will replace when code changes*/
         private Fi synchronizedFile = null;
+        /** should run instead of close */
+        private boolean runInsteadOfClose = false;
+
         /** Run the block */
         public void run() {
             try {
@@ -59,8 +63,6 @@ public class JsTester extends CodableTester {
                 return;
             }
 
-            ArrayList<Object> argsObj = new ArrayList<>();
-
             Scripts scripts = Vars.mods.getScripts();
 
             String textCode;
@@ -69,7 +71,7 @@ public class JsTester extends CodableTester {
 
             try {
                 Function fn = scripts.context.compileFunction(scripts.scope, textCode, "JsTester", 1);
-                runFn = () -> fn.call(scripts.context, scripts.scope, rhino.Context.toObject(this, scripts.scope), argsObj.toArray());
+                runFn = () -> fn.call(scripts.context, scripts.scope, rhino.Context.toObject(this, scripts.scope), new ArrayList<>().toArray());
                 setError();
             } catch (Throwable e) {
                 setError(e.getMessage(), true);
@@ -90,25 +92,28 @@ public class JsTester extends CodableTester {
         public void buildConfiguration(Table table) {
 
             table.button(Icon.pencil, Styles.cleari, () -> {
-                CodeIde ide = new CodeIde();
+                BetterIdeDialog ideDialog = new BetterIdeDialog();
+                ideDialog.sidebar.button(Icon.play, Styles.clearNonei, () -> {
+                    boolean saved = ideDialog.trySave();
+                    if (saved) this.run();
+                }).size(40).padBottom(5);
 
-                CodingTabArea tab = new CodingTabArea();
-                ide.addTab(tab);
-                ide.hideTabs(true);
-                ide.maxByteOutput = 65523; // (65535 = Max bytes size) - (11 = build properties) - (1 = build version)
+                ideDialog.MaxByteOutput = 65523; // (65535 = Max bytes size) - (11 = build properties) - (1 = build version)
 
-                tab.setCode(code);
-                tab.setObjThis(this);
+                CodingTab codingTab = new CodingTab("code.js");
+                codingTab.setText(code);
 
-                ide.setOnSave(codeIde -> {
-                    this.configure(tab.getCode());
+                ideDialog.createTab(codingTab);
+                ideDialog.onSave = () -> {
+                    this.configure(codingTab.getText());
                     if (synchronizedFile != null) lastTimeFileModified = synchronizedFile.lastModified();
                     lastEditByPlayer = true;
-                });
-                tab.setOnSynchronize(file -> this.synchronizedFile = file);
+                };
+                codingTab.setOnSynchronize (fi -> synchronizedFile = fi);
+                ideDialog.setFooter(() -> Strings.format("Used Bytes: @/@",3+codingTab.getText().length(), ideDialog.MaxByteOutput));
 
                 if (synchronizedFile == null) {
-                    ide.show();
+                    ideDialog.show();
                     deselect();
                     return;
                 }
@@ -118,15 +123,15 @@ public class JsTester extends CodableTester {
                 if (FileChanged && CodeChanged) {
                     new FileSyncTypeDialog(false, true, type -> {
                         if (type == FileSyncTypeDialog.SyncType.CANCEL) return;
-                        tab.setSync(synchronizedFile, type == FileSyncTypeDialog.SyncType.UPLOAD);
-                        ide.show();
+                        codingTab.synchronizeFile(synchronizedFile, type == FileSyncTypeDialog.SyncType.UPLOAD);
+                        ideDialog.show();
                         deselect();
                     });
                     return;
                 }
 
-                tab.setSync(synchronizedFile, CodeChanged);
-                ide.show();
+                codingTab.synchronizeFile(synchronizedFile, CodeChanged);
+                ideDialog.show();
                 deselect();
             }).size(40f);
             table.button(Icon.settings, Styles.cleari, () -> {
@@ -136,7 +141,6 @@ public class JsTester extends CodableTester {
                 cd.setOnClose(values -> {
                     int v = 0;
                     if ((boolean) values.get("safe")) v |= 0x1;
-
                     configure(new Object[]{v});
                 });
                 cd.show();
@@ -162,6 +166,7 @@ public class JsTester extends CodableTester {
             write.str(code);
             byte v = 0;
             if (safeRunning) v |= 0x1;
+            if (runInsteadOfClose) v |= 0x2;
             write.b(v);
         }
 
@@ -171,6 +176,7 @@ public class JsTester extends CodableTester {
             setCode(read.str());
             byte v = read.b();
             safeRunning = (v & 0x1) != 0;
+            runInsteadOfClose = (v & 0x2) != 0;
         }
     }
 
